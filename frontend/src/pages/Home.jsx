@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/common/Navbar"; // adjust path as needed
+import Navbar from "../components/common/Navbar";
 
 export default function GreenJobsHomepage() {
   const navigate = useNavigate();
