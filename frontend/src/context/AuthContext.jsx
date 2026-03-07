@@ -4,18 +4,11 @@ import { getStoredAuth, setStoredAuth, removeStoredAuth } from '../utils/auth';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const storedAuth = getStoredAuth();
-    if (storedAuth) {
-      setUser(storedAuth.user);
-      setToken(storedAuth.token);
-    }
-    setLoading(false);
-  }, []);
+  // ✅ Initialize directly from localStorage — no race condition
+  const storedAuth = getStoredAuth();
+  const [user, setUser]     = useState(storedAuth?.user  || null);
+  const [token, setToken]   = useState(storedAuth?.token || null);
+  const [loading, setLoading] = useState(false); // ✅ No async needed
 
   const login = (userData, authToken) => {
     setUser(userData);

@@ -13,7 +13,7 @@ import API_BASE_URL from "../config/api";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { token } = useAuth();
+const { token } = useAuth();
 
   // Stats State
   const [stats, setStats] = useState({
