@@ -26,8 +26,7 @@ import {
   Award,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-
-const API_BASE_URL = "http://localhost:5000";
+import API_BASE_URL from "../config/api";
 
 const ROUND_TYPES = [
   { value: "resume_screening", label: "Resume Screening", icon: "📄" },

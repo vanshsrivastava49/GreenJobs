@@ -21,7 +21,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
-const API_BASE = "http://localhost:5000";
+import API_BASE_URL from "../config/api"; // adjust path as needed
 
 const ApplyModal = ({ job, onClose, onSuccess }) => {
   const { user, token } = useAuth();
@@ -68,7 +68,7 @@ const ApplyModal = ({ job, onClose, onSuccess }) => {
     try {
       setSubmitting(true);
       await axios.post(
-        `${API_BASE}/api/applications`,
+        `${API_BASE_URL}/api/applications`,
         {
           jobId: job._id,
           coverLetter: coverLetter.trim(),

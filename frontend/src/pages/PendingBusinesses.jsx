@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-
+import API_BASE_URL from "../config/api";
 export default function PendingBusinesses() {
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function PendingBusinesses() {
     try {
       setLoading(true);
       const res = await axios.get(
-        "http://localhost:5000/api/profile/business/pending",
+  `${API_BASE_URL}/api/profile/business/pending`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setBusinesses(res.data);
@@ -42,7 +42,7 @@ export default function PendingBusinesses() {
     try {
       setActionLoading(prev => ({ ...prev, [id]: 'approving' }));
       await axios.patch(
-        `http://localhost:5000/api/profile/business/approve/${id}`,
+  `${API_BASE_URL}/api/profile/business/approve/${id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -60,7 +60,7 @@ export default function PendingBusinesses() {
     try {
       setActionLoading(prev => ({ ...prev, [id]: 'rejecting' }));
       await axios.patch(
-        `http://localhost:5000/api/profile/business/reject/${id}`,
+  `${API_BASE_URL}/api/profile/business/reject/${id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

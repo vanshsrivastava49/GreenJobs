@@ -23,7 +23,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-
+import API_BASE_URL from "../config/api";
 const BusinessOwnerDashboard = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -75,7 +75,7 @@ const BusinessOwnerDashboard = () => {
     try {
       setLoadingJobs(true);
       
-      const res = await axios.get("http://localhost:5000/api/jobs/pending", {
+      const res = await axios.get(`${API_BASE_URL}/api/jobs/pending`, {
         headers: { 
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -98,7 +98,7 @@ const BusinessOwnerDashboard = () => {
     if (!token) return;
     try {
       setLoadingRecruiters(true);
-      const res = await axios.get("http://localhost:5000/api/profile/business/pending-recruiters", {
+      const res = await axios.get(`${API_BASE_URL}/api/profile/business/pending-recruiters`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPendingRecruiters(res.data || []);
@@ -115,7 +115,7 @@ const BusinessOwnerDashboard = () => {
       setLoadingLinkedRecruiters(true);
       console.log("🔍 Fetching linked recruiters...");
       
-      const res = await axios.get("http://localhost:5000/api/profile/business/linked-recruiters", {
+      const res = await axios.get(`${API_BASE_URL}/api/profile/business/linked-recruiters`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -139,7 +139,7 @@ const BusinessOwnerDashboard = () => {
 const approveRecruiter = async (requestId) => {
   try {
     const res = await axios.patch(
-      `http://localhost:5000/api/profile/business/approve-recruiter/${requestId}`, 
+      `${API_BASE_URL}/api/profile/business/approve-recruiter/${requestId}`, 
       {}, 
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -168,7 +168,7 @@ const approveRecruiter = async (requestId) => {
     try {
       const reason = prompt(`Why are you rejecting ${recruiterName}? (Optional)`);
       await axios.patch(
-        `http://localhost:5000/api/profile/business/reject-recruiter/${requestId}`, 
+       `${API_BASE_URL}/api/profile/business/reject-recruiter/${requestId}`, 
         { reason: reason || "No reason provided" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -190,7 +190,7 @@ const approveRecruiter = async (requestId) => {
       setRemovingRecruiter(recruiterId);
       
       await axios.post(
-        `http://localhost:5000/api/profile/business/remove-recruiter/${recruiterId}`,
+        `${API_BASE_URL}/api/profile/business/remove-recruiter/${recruiterId}`,
         {},
         { 
           headers: { Authorization: `Bearer ${token}` },
@@ -212,7 +212,7 @@ const approveRecruiter = async (requestId) => {
 const approveJob = async (jobId) => {
   try {
     const res = await axios.patch(
-      `http://localhost:5000/api/jobs/${jobId}/business-approve`,
+      `${API_BASE_URL}/api/jobs/${jobId}/business-approve`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -233,7 +233,7 @@ const rejectJob = async (jobId, jobTitle) => {
     const reason = prompt(`Reason for rejecting "${jobTitle}"? (Optional)`);
 
     await axios.patch(
-      `http://localhost:5000/api/jobs/${jobId}/business-reject`,
+      `${API_BASE_URL}/api/jobs/${jobId}/business-reject`,
       { reason: reason || "" },
       { headers: { Authorization: `Bearer ${token}` } }
     );

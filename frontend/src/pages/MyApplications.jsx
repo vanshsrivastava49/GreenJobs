@@ -22,8 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-
-const API_BASE = "http://localhost:5000";
+import API_BASE_URL from "../config/api";
 
 const ROUND_TYPE_LABELS = {
   resume_screening:    "Resume Screening",

@@ -7,7 +7,7 @@ import {
   CheckCircle, XCircle, Clock, Briefcase, Building2, User, 
   RefreshCw, Loader2, Eye 
 } from "lucide-react";
-
+import API_BASE_URL from "../config/api";
 const PendingJobs = () => {
   const { token, user } = useAuth();
   const [jobs, setJobs] = useState([]);
@@ -26,7 +26,7 @@ const PendingJobs = () => {
     try {
       setLoading(true);
       
-      const response = await axios.get("http://localhost:5000/api/jobs/pending", {
+      const response = await axios.get(`${API_BASE_URL}/api/jobs/pending`, {
         headers: { 
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -91,7 +91,7 @@ const PendingJobs = () => {
     try {
       setApproving(prev => ({ ...prev, [jobId]: true }));
       
-      await axios.patch(`http://localhost:5000/api/jobs/approve/${jobId}`, {
+      await axios.patch(`${API_BASE_URL}/api/jobs/approve/${jobId}`, {
         status: 'approved'
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -111,7 +111,7 @@ const PendingJobs = () => {
     try {
       setApproving(prev => ({ ...prev, [jobId]: true }));
       
-      await axios.patch(`http://localhost:5000/api/jobs/reject/${jobId}`, {
+      await axios.patch(`${API_BASE_URL}/api/jobs/reject/${jobId}`, {
         status: 'rejected_business'
       }, {
         headers: { Authorization: `Bearer ${token}` }

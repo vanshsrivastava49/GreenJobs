@@ -15,7 +15,7 @@ import {
   Users 
 } from "lucide-react";
 import toast from "react-hot-toast";
-
+import API_BASE_URL from "../config/api";
 export default function ApprovedBusinesses() {
   const { token } = useAuth();
   const [businesses, setBusinesses] = useState([]);
@@ -37,7 +37,7 @@ export default function ApprovedBusinesses() {
     try {
       setLoading(true);
       const res = await axios.get(
-        "http://localhost:5000/api/profile/business/approved",
+        `${API_BASE_URL}/api/profile/business/approved`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       

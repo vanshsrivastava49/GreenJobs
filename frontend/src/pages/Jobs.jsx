@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Navbar from "../components/common/Navbar";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 import {
   Search,
   Briefcase,
@@ -74,7 +75,7 @@ const Jobs = () => {
       setLoading(pageNum === 1);
       setError(null);
 
-      const response = await axios.get(`http://localhost:5000/api/jobs/public?page=${pageNum}&limit=12`, {
+      const response = await axios.get(`${API_BASE_URL}/api/jobs/public?page=${pageNum}&limit=12`, {
         timeout: 10000
       });
 
@@ -104,7 +105,7 @@ const Jobs = () => {
 
       if (err.code !== 'ECONNABORTED' && !error) {
         try {
-          const fallback = await axios.get("http://localhost:5000/api/jobs", { timeout: 5000 });
+          const fallback = await axios.get(`${API_BASE_URL}/api/jobs`, { timeout: 5000 });
           const fallbackJobs = fallback.data.jobs || fallback.data || [];
           setJobs(fallbackJobs.filter(job => job.status === "approved"));
           toast.success("Loaded via fallback");

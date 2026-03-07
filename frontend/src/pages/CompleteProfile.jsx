@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
 import "./CompleteProfile.css";
-
+import API_BASE_URL from "../config/api";
 const CompleteProfile = () => {
   const { user, token, login, logout } = useAuth();
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const CompleteProfile = () => {
   const [skillInput,      setSkillInput]      = useState("");
   const [selectedSkills,  setSelectedSkills]  = useState(seedProfile.skills || []);
 
-  const API = "http://localhost:5000/api/profile";
+  const API = `${API_BASE_URL}/api/profile`;
 
   /* ======================
      SECTION CONFIGURATIONS
@@ -139,7 +139,7 @@ const CompleteProfile = () => {
   const handleLogout = async () => {
     try {
       await axios.post(
-        "http://localhost:5000/api/auth/logout",
+  `${API_BASE_URL}/api/auth/logout`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

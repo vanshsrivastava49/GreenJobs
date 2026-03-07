@@ -27,8 +27,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-
-const API_BASE = "http://localhost:5000";
+import API_BASE_URL from "../config/api";
 
 const STATUS_COLORS = {
   applied:      { label: "New",         color: "#1e40af", bg: "#dbeafe", border: "#93c5fd" },
@@ -465,7 +464,7 @@ const RecruiterApplications = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/applications/recruiter`, {
+      const res = await axios.get(`${API_BASE_URL}/api/applications/recruiter`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setApplications(res.data.applications || []);
@@ -485,7 +484,7 @@ const RecruiterApplications = () => {
     try {
       setActionLoading(applicationId + "_shortlist_direct");
       await axios.patch(
-        `${API_BASE}/api/applications/${applicationId}/shortlist`,
+        `${API_BASE_URL}/api/applications/${applicationId}/shortlist`,
         { note: note || "" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -511,7 +510,7 @@ const RecruiterApplications = () => {
     try {
       setActionLoading(applicationId + "_shortlist_round");
       await axios.patch(
-        `${API_BASE}/api/applications/${applicationId}/shortlist`,
+        `${API_BASE_URL}/api/applications/${applicationId}/shortlist`,
         { note: shortlistNote || "" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -539,7 +538,7 @@ const RecruiterApplications = () => {
     try {
       setActionLoading(applicationId + "_next");
       await axios.patch(
-        `${API_BASE}/api/applications/${applicationId}/next-round`,
+        `${API_BASE_URL}/api/applications/${applicationId}/next-round`,
         { note: nextRoundNote || "" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -567,7 +566,7 @@ const RecruiterApplications = () => {
     try {
       setActionLoading(applicationId + "_final");
       await axios.patch(
-        `${API_BASE}/api/applications/${applicationId}/final-shortlist`,
+        `${API_BASE_URL}/api/applications/${applicationId}/final-shortlist`,
         { note: finalNote || "" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -588,7 +587,7 @@ const RecruiterApplications = () => {
     try {
       setActionLoading(rejectModal.applicationId + "_reject");
       await axios.patch(
-        `${API_BASE}/api/applications/${rejectModal.applicationId}/reject`,
+        `${API_BASE_URL}/api/applications/${rejectModal.applicationId}/reject`,
         { reason: rejectReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -607,7 +606,7 @@ const RecruiterApplications = () => {
   const updateNotes = async (applicationId, notes, rating) => {
     try {
       await axios.patch(
-        `${API_BASE}/api/applications/${applicationId}/notes`,
+        `${API_BASE_URL}/api/applications/${applicationId}/notes`,
         { internalNotes: notes, recruiterRating: rating },
         { headers: { Authorization: `Bearer ${token}` } }
       );

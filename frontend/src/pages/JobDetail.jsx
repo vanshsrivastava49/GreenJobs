@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import ApplyModal from "./ApplyModal";
+import API_BASE_URL from "../config/api";
 import {
   ArrowLeft,
   MapPin,
@@ -31,7 +32,6 @@ import {
 const RupeeIcon = ({ size = 20, color = "#065f46" }) => (
   <span style={{ fontSize: size, fontWeight: 700, color }}>{'\u20B9'}</span>
 );
-const API_BASE_URL = "http://localhost:5000";
 
 const ROUND_TYPE_LABELS = {
   resume_screening: "Resume Screening",

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../components/common/Navbar";
 import axios from "axios";
 import { Building2, MapPin, Phone, Star, ArrowRight, Search, ChevronDown, X } from "lucide-react";
-
+import API_BASE_URL from "../config/api";
 export default function Businesses() {
   const [biz, setBiz] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export default function Businesses() {
   const fetchBusinesses = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/profile/business/approved");
+      const res = await axios.get(`${API_BASE_URL}/api/profile/business/approved`);
       setBiz(res.data);
     } catch (err) {
       console.error("Failed to fetch businesses:", err);

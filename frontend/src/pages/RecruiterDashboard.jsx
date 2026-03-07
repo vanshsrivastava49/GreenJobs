@@ -24,7 +24,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-
+import API_BASE_URL from "../config/api";
 const RecruiterDashboard = () => {
   const navigate = useNavigate();
   const { user, token, refreshUser } = useAuth();
@@ -53,7 +53,7 @@ const RecruiterDashboard = () => {
     if (!token) return;
     try {
       setLoadingJobs(true);
-      const res = await axios.get("http://localhost:5000/api/jobs/my", {
+      const res = await axios.get(`${API_BASE_URL}/api/jobs/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const jobsData = res.data?.jobs || [];
@@ -70,7 +70,7 @@ const RecruiterDashboard = () => {
   const fetchAppCount = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await axios.get("http://localhost:5000/api/applications/recruiter", {
+      const res = await axios.get(`${API_BASE_URL}/api/applications/recruiter`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const apps = res.data.applications || res.data || [];
@@ -85,7 +85,7 @@ const RecruiterDashboard = () => {
     try {
       setLoadingBusinesses(true);
       const res = await axios.get(
-        "http://localhost:5000/api/profile/business/approved",
+        `${API_BASE_URL}/api/profile/business/approved`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const businessesData = Array.isArray(res.data) ? res.data : [];
@@ -107,7 +107,7 @@ const RecruiterDashboard = () => {
     try {
       setLoadingRequests(true);
       const res = await axios.get(
-        "http://localhost:5000/api/profile/recruiter/pending-requests",
+        `${API_BASE_URL}/api/profile/recruiter/pending-requests`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPendingRequests(res.data || []);
@@ -126,7 +126,7 @@ const RecruiterDashboard = () => {
     setTogglingJob(jobId);
     try {
       await axios.patch(
-        `http://localhost:5000/api/jobs/${jobId}/toggle-status`,
+        `${API_BASE_URL}/api/jobs/${jobId}/toggle-status`,
         { isOpen: !currentIsOpen },
         {
           headers: {
@@ -157,7 +157,7 @@ const RecruiterDashboard = () => {
     try {
       setLinkingBusiness(true);
       const response = await axios.post(
-        "http://localhost:5000/api/profile/recruiter/request-business",
+        `${API_BASE_URL}/api/profile/recruiter/request-business`,
         { businessId },
         {
           headers: {
@@ -199,7 +199,7 @@ const RecruiterDashboard = () => {
     try {
       setUnlinkingBusiness(true);
       const response = await axios.post(
-        "http://localhost:5000/api/profile/recruiter/unlink-business",
+        `${API_BASE_URL}/api/profile/recruiter/unlink-business`,
         {},
         { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
       );

@@ -9,8 +9,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-
-const API_BASE_URL = "http://localhost:5000";
+import API_BASE_URL from "../config/api";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -52,7 +51,8 @@ const AdminDashboard = () => {
 
       const [statsRes, usersRes, liveJobsRes, approvedBizRes, pendingBizRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/admin/stats`, { headers })
-          .catch(() => ({ data: {} })),
+          .catch(() => ({ data: {} 
+          })),
         axios.get(`${API_BASE_URL}/api/admin/users`, { headers })
           .catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/api/jobs/public`)
