@@ -7,11 +7,17 @@ import { useState } from "react";
 import GoogleRoleModal from "./GoogleRoleModal";
 
 const GoogleSignIn = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const { login }   = useAuth();
+  const navigate    = useNavigate();
+  const [googleToken,    setGoogleToken]    = useState(null);
+  const [showRoleModal,  setShowRoleModal]  = useState(false);
 
-  const [googleToken, setGoogleToken] = useState(null);
-  const [showRoleModal, setShowRoleModal] = useState(false);
+  const redirectMap = {
+    jobseeker: "/jobseeker/dashboard",
+    recruiter: "/recruiter/dashboard",
+    business:  "/business/dashboard",
+    admin:     "/admin",
+  };
 
   const handleSuccess = async (credentialResponse) => {
     try {
@@ -26,7 +32,7 @@ const GoogleSignIn = () => {
       }
 
       login(res.data.user, res.data.token);
-      navigate("/dashboard");
+      navigate(redirectMap[res.data.user.role] || "/dashboard");
     } catch {
       toast.error("Google sign-in failed");
     }
@@ -40,7 +46,7 @@ const GoogleSignIn = () => {
       });
 
       login(res.data.user, res.data.token);
-      navigate("/dashboard");
+      navigate(redirectMap[res.data.user.role] || "/dashboard");
     } catch {
       toast.error("Google signup failed");
     }
@@ -53,10 +59,7 @@ const GoogleSignIn = () => {
         onError={() => toast.error("Google sign-in failed")}
         width="100%"
       />
-
-      {showRoleModal && (
-        <GoogleRoleModal onSubmit={handleRoleSubmit} />
-      )}
+      {showRoleModal && <GoogleRoleModal onSubmit={handleRoleSubmit} />}
     </>
   );
 };

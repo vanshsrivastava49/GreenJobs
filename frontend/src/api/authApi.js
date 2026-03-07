@@ -30,7 +30,9 @@ export const verifyOTP = async (
   lastName  = null,
   type      = "login"
 ) => {
-  const endpoint = type === "signup" ? "/signup/verify-otp" : "/login/verify-otp";
+  const endpoint = type === "signup"
+    ? "/signup/verify-otp"
+    : "/login/verify-otp";
 
   const payload = { email, otp };
 
