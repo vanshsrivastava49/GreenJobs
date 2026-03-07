@@ -4,19 +4,25 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 
 const app = express();
-const allowedOrigins = [
-  "http://localhost:5173",
-  process.env.FRONTEND_URL,         // CloudFront URL added after deploy
-].filter(Boolean);
 
-// ✅ 1. CORS first — before any routes
+// ✅ 1. CORS — dynamic so env vars are always loaded
 app.use(
   cors({
     origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean);
+
+      console.log("Request origin:", origin);
+      console.log("Allowed origins:", allowedOrigins);
+
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       } else {
+        console.log("CORS BLOCKED:", origin);
         return callback(new Error("Not allowed by CORS"));
       }
     },
@@ -24,19 +30,19 @@ app.use(
   })
 );
 
-// ✅ 2. Body parsers — before any routes
+// ✅ 2. Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ 3. DB connection
 connectDB();
 
-// ✅ 4. All routes (after middleware is ready)
-app.use("/api/auth",    require("./routes/auth.routes"));
-app.use("/api/profile", require("./routes/profile.routes"));
-app.use("/api/jobs",    require("./routes/job.routes"));
-app.use("/api/admin",   require("./routes/admin.routes")); // /api/admin/users  /api/admin/stats
-app.use("/api/applications", require("./routes/application.routes")); 
+// ✅ 4. Routes
+app.use("/api/auth",         require("./routes/auth.routes"));
+app.use("/api/profile",      require("./routes/profile.routes"));
+app.use("/api/jobs",         require("./routes/job.routes"));
+app.use("/api/admin",        require("./routes/admin.routes"));
+app.use("/api/applications", require("./routes/application.routes"));
 
 app.get("/health", (req, res) => {
   res.json({ success: true, status: "OK", message: "Server is running" });
