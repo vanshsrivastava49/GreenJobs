@@ -5,36 +5,36 @@ const protect = require("../middleware/auth");
 const authorizeRoles = require("../middleware/role");
 
 const {
-  submitApplication,
-  getMyApplications,
-  withdrawApplication,
-  getRecruiterApplications,
-  getApplicationDetail,
-  shortlistApplicant,
-  updateRoundResult,
-  rejectApplicant,
-  updateApplicationNotes,
-  getAllApplications,
-  checkApplied,
-} = require("../controllers/application.controller");
+  getStats,
+  getUsers,
+  getUserById,
+  deleteUser,
+  getJobs,
+  updateJobStatus,
+  deleteJob,
+  approveBusiness,
+  getBusinesses,
+  rejectBusiness,
+  revokeBusiness,
+} = require("../controllers/admin.controller");
 
-// ── Jobseeker routes ────────────────────────────────────────
-router.post("/",                              protect, authorizeRoles("jobseeker"),         submitApplication);
-router.get("/my",                             protect, authorizeRoles("jobseeker"),         getMyApplications);
-router.get("/check/:jobId",                   protect, authorizeRoles("jobseeker"),         checkApplied);
-router.patch("/:applicationId/withdraw",      protect, authorizeRoles("jobseeker"),         withdrawApplication);
+// ── Stats ──────────────────────────────────────────────────
+router.get("/stats", protect, authorizeRoles("admin"), getStats);
 
-// ── Recruiter routes ────────────────────────────────────────
-router.get("/recruiter",                      protect, authorizeRoles("recruiter"),         getRecruiterApplications);
-router.patch("/:applicationId/shortlist",     protect, authorizeRoles("recruiter"),         shortlistApplicant);
-router.patch("/:applicationId/round-result",  protect, authorizeRoles("recruiter"),         updateRoundResult);
-router.patch("/:applicationId/reject",        protect, authorizeRoles("recruiter"),         rejectApplicant);
-router.patch("/:applicationId/notes",         protect, authorizeRoles("recruiter"),         updateApplicationNotes);
+// ── Users ──────────────────────────────────────────────────
+router.get("/users",        protect, authorizeRoles("admin"), getUsers);
+router.get("/users/:id",    protect, authorizeRoles("admin"), getUserById);
+router.delete("/users/:id", protect, authorizeRoles("admin"), deleteUser);
 
-// ── Admin routes ────────────────────────────────────────────
-router.get("/admin/all",                      protect, authorizeRoles("admin"),             getAllApplications);
+// ── Jobs ───────────────────────────────────────────────────
+router.get("/jobs",              protect, authorizeRoles("admin"), getJobs);
+router.patch("/jobs/:id/status", protect, authorizeRoles("admin"), updateJobStatus);
+router.delete("/jobs/:id",       protect, authorizeRoles("admin"), deleteJob);
 
-// ── Shared (recruiter + admin) ──────────────────────────────
-router.get("/:applicationId",                 protect, authorizeRoles("recruiter", "admin"), getApplicationDetail);
+// ── Businesses ─────────────────────────────────────────────
+router.get("/businesses",               protect, authorizeRoles("admin"), getBusinesses);
+router.patch("/businesses/:id/approve", protect, authorizeRoles("admin"), approveBusiness);
+router.patch("/businesses/:id/reject",  protect, authorizeRoles("admin"), rejectBusiness);
+router.patch("/businesses/:id/revoke",  protect, authorizeRoles("admin"), revokeBusiness);
 
 module.exports = router;

@@ -260,7 +260,6 @@ const RoundJourneyBanner = ({ app }) => {
 ───────────────────────────────────────────────────────── */
 const MyApplications = () => {
   const { token } = useAuth();
-const authToken = token || JSON.parse(localStorage.getItem("job_portal_auth") || "{}").token;
   const [applications, setApplications] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [expandedApp, setExpandedApp]   = useState(null);
@@ -268,11 +267,11 @@ const authToken = token || JSON.parse(localStorage.getItem("job_portal_auth") ||
   const [filterStatus, setFilterStatus] = useState("all");
 
   const fetchApplications = useCallback(async () => {
-    if (!authToken) return;
+    if (!token) return;
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE_URL}/api/applications/my`, {
-  headers: { Authorization: `Bearer ${authToken}` },
+  headers: { Authorization: `Bearer ${token}` },
 });
       setApplications(res.data.applications || []);
     } catch {
@@ -280,7 +279,7 @@ const authToken = token || JSON.parse(localStorage.getItem("job_portal_auth") ||
     } finally {
       setLoading(false);
     }
-  }, [authToken]);
+  }, [token]);
 
   useEffect(() => { fetchApplications(); }, [fetchApplications]);
 
@@ -291,7 +290,7 @@ const authToken = token || JSON.parse(localStorage.getItem("job_portal_auth") ||
       await axios.patch(
   `${API_BASE_URL}/api/applications/${applicationId}/withdraw`,
   {},
-  { headers: { Authorization: `Bearer ${authToken}` } }
+  { headers: { Authorization: `Bearer ${token}` } }
 );
       toast.success("Application withdrawn");
       fetchApplications();
