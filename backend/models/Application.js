@@ -20,7 +20,7 @@ const applicationSchema = new mongoose.Schema(
     business: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
 
     // Personal snapshot at time of application

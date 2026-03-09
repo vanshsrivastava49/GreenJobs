@@ -24,6 +24,7 @@ import {
   Users,
   FileText,
   Award,
+  ShieldCheck, // ✅ Added — was missing, used in header pill
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import API_BASE_URL from "../config/api";
@@ -59,6 +60,10 @@ const PostJob = () => {
   const navigate = useNavigate();
   const { jobId } = useParams();
 
+  // ✅ Verification-based access — no more linkedBusiness
+  const verificationStatus = user?.recruiterProfile?.verificationStatus;
+  const isVerified = verificationStatus === "approved";
+
   const [form, setForm] = useState({
     title: "",
     company: "",
@@ -70,45 +75,22 @@ const PostJob = () => {
     stipend: "",
     stipendPeriod: "monthly",
     rounds: [defaultRound()],
-    status: "pending_business",
   });
 
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [linkedBusiness, setLinkedBusiness] = useState(null);
-  const [businessDetails, setBusinessDetails] = useState(null);
-  const [checkingBusiness, setCheckingBusiness] = useState(true);
   const [activeSection, setActiveSection] = useState("basics");
   const [existingJob, setExistingJob] = useState(null);
   const [takingDown, setTakingDown] = useState(false);
 
-  const checkLinkedBusiness = useCallback(async () => {
-    try {
-      setCheckingBusiness(true);
-      const businessId = user?.recruiterProfile?.linkedBusiness;
-      if (!businessId) { setLinkedBusiness(null); setBusinessDetails(null); return; }
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/profile/recruiter/linked-business-details`,
-          { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
-        );
-        if (response.data.success && response.data.linked) {
-          setLinkedBusiness(businessId);
-          setBusinessDetails(response.data.business);
-          setForm(prev => ({ ...prev, company: response.data.business.name || prev.company }));
-        } else {
-          setLinkedBusiness(null); setBusinessDetails(null);
-        }
-      } catch { setLinkedBusiness(businessId); }
-    } catch { setLinkedBusiness(null); setBusinessDetails(null); }
-    finally { setCheckingBusiness(false); }
-  }, [user, token]);
-
+  // ✅ Auto-fill company from recruiter's own profile
   useEffect(() => {
-    if (token && user) checkLinkedBusiness();
-    else setCheckingBusiness(false);
-  }, [checkLinkedBusiness, token, user]);
+    if (user?.recruiterProfile?.companyName) {
+      setForm(prev => ({ ...prev, company: user.recruiterProfile.companyName }));
+    }
+  }, [user]);
 
+  // ✅ Load existing job for edit mode
   useEffect(() => {
     if (jobId && token) {
       axios.get(`${API_BASE_URL}/api/jobs/${jobId}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -128,7 +110,6 @@ const PostJob = () => {
             rounds: job.rounds?.length
               ? job.rounds.map((r) => ({ ...r, id: r._id || Date.now() + Math.random(), expanded: false }))
               : [defaultRound()],
-            status: job.status,
           });
         }).catch(() => {});
     }
@@ -164,11 +145,9 @@ const PostJob = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // ── KEY FIX: handleSubmit no longer depends on a form event ──
   const handleSubmit = async () => {
     if (!validate()) {
       toast.error("Please fix the errors before submitting");
-      // Jump back to the first section that has an error
       if (formErrors.title || formErrors.location || formErrors.description) {
         setActiveSection("basics");
       } else if (formErrors.stipend) {
@@ -176,8 +155,13 @@ const PostJob = () => {
       }
       return;
     }
-    if (!linkedBusiness) {
-      toast.error("Link to a business first from your dashboard");
+    // ✅ Gate on verification, not linkedBusiness
+    if (!isVerified) {
+      toast.error(
+        verificationStatus === "pending"
+          ? "Your profile is awaiting admin verification"
+          : "Get verified by admin before posting jobs"
+      );
       setTimeout(() => navigate("/dashboard"), 2000);
       return;
     }
@@ -207,13 +191,13 @@ const PostJob = () => {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         timeout: 15000,
       });
-      toast.success(response.data.message || "Job submitted for approval!", {
+      toast.success(response.data.message || "Job posted successfully!", {
         duration: 3000,
         style: { background: "#D1FAE5", color: "#065F46", border: "1px solid #6EE7B7", borderRadius: "12px", fontWeight: "500" },
       });
       setTimeout(() => navigate("/dashboard"), 2000);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to submit job");
+      toast.error(err.response?.data?.message || "Failed to post job");
     } finally {
       setLoading(false);
     }
@@ -258,18 +242,6 @@ const PostJob = () => {
     if (idx > 0) setActiveSection(sectionOrder[idx - 1]);
   };
 
-  if (checkingBusiness) {
-    return (
-      <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
-        <Navbar />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", gap: 16 }}>
-          <Loader2 size={40} style={{ color: "#6366f1", animation: "spin 1s linear infinite" }} />
-          <p style={{ color: "#64748b", fontSize: 16, fontFamily: "'DM Sans', sans-serif" }}>Verifying access…</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <style>{`
@@ -283,137 +255,54 @@ const PostJob = () => {
         @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
 
         .pj-root { background: #f8fafc; min-height: 100vh; }
+        .pj-layout { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; animation: fadeIn 0.5s ease; }
 
-        .pj-layout {
-          max-width: 1100px;
-          margin: 0 auto;
-          padding: 32px 24px 80px;
-          animation: fadeIn 0.5s ease;
-        }
-
-        .pj-back {
-          display: inline-flex; align-items: center; gap: 8px;
-          color: #94a3b8; background: none; border: none; cursor: pointer;
-          font-size: 14px; font-family: 'DM Sans', sans-serif;
-          padding: 8px 0; margin-bottom: 28px; transition: color 0.2s;
-        }
+        .pj-back { display: inline-flex; align-items: center; gap: 8px; color: #94a3b8; background: none; border: none; cursor: pointer; font-size: 14px; font-family: 'DM Sans', sans-serif; padding: 8px 0; margin-bottom: 28px; transition: color 0.2s; }
         .pj-back:hover { color: #6366f1; }
 
-        .pj-header {
-          display: flex; align-items: flex-start; justify-content: space-between;
-          margin-bottom: 40px; gap: 16px; flex-wrap: wrap;
-        }
-        .pj-header-left h1 {
-          font-family: 'Syne', sans-serif;
-          font-size: 34px; font-weight: 800; color: #0f172a;
-          line-height: 1.1; margin-bottom: 8px;
-        }
+        .pj-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 40px; gap: 16px; flex-wrap: wrap; }
+        .pj-header-left h1 { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 8px; }
         .pj-header-left p { color: #94a3b8; font-size: 15px; }
 
-        .pj-business-pill {
-          display: inline-flex; align-items: center; gap: 8px;
-          padding: 8px 16px; border-radius: 100px;
-          font-size: 13px; font-weight: 600;
-        }
-        .pj-business-pill.linked {
-          background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a;
-        }
-        .pj-business-pill.unlinked {
-          background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
-        }
+        .pj-business-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 600; }
+        .pj-business-pill.linked { background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
+        .pj-business-pill.unlinked { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
 
-        .pj-takedown-banner {
-          background: #fff7ed; border: 1px solid #fed7aa;
-          border-radius: 12px; padding: 16px 20px;
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 16px; margin-bottom: 32px; flex-wrap: wrap;
-        }
+        .pj-takedown-banner { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
         .pj-takedown-banner-left { display: flex; align-items: center; gap: 12px; }
         .pj-takedown-banner-left span { font-size: 14px; color: #ea580c; }
         .pj-takedown-banner-left strong { display: block; font-size: 15px; color: #c2410c; margin-bottom: 2px; }
 
-        .pj-progress-bar {
-          height: 3px; background: #e2e8f0; border-radius: 100px;
-          overflow: hidden; margin-bottom: 20px;
-        }
-        .pj-progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, #6366f1, #818cf8);
-          border-radius: 100px; transition: width 0.5s ease;
-        }
+        .pj-progress-bar { height: 3px; background: #e2e8f0; border-radius: 100px; overflow: hidden; margin-bottom: 20px; }
+        .pj-progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 100px; transition: width 0.5s ease; }
 
-        .pj-tabs {
-          display: flex; gap: 4px; margin-bottom: 32px;
-          background: #f1f5f9; border: 1px solid #e2e8f0;
-          border-radius: 12px; padding: 4px;
-        }
-        .pj-tab {
-          flex: 1; display: flex; align-items: center; justify-content: center;
-          gap: 8px; padding: 12px 16px; border-radius: 8px;
-          font-size: 14px; font-weight: 600; cursor: pointer;
-          background: none; border: none; color: #94a3b8;
-          font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-        }
-        .pj-tab.active {
-          background: white; color: #6366f1;
-          border: 1px solid #e0e7ff;
-          box-shadow: 0 1px 4px rgba(99,102,241,0.12);
-        }
+        .pj-tabs { display: flex; gap: 4px; margin-bottom: 32px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 4px; }
+        .pj-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: none; border: none; color: #94a3b8; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .pj-tab.active { background: white; color: #6366f1; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(99,102,241,0.12); }
         .pj-tab:hover:not(.active) { color: #64748b; background: rgba(255,255,255,0.6); }
 
-        .pj-card {
-          background: white; border: 1px solid #e2e8f0;
-          border-radius: 16px; padding: 28px; margin-bottom: 20px;
-          animation: fadeIn 0.4s ease;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-        }
-        .pj-card-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 4px;
-        }
+        .pj-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; margin-bottom: 20px; animation: fadeIn 0.4s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .pj-card-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
         .pj-card-subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
 
         .pj-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .pj-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
         .pj-field:last-child { margin-bottom: 0; }
 
-        .pj-label {
-          font-size: 12px; font-weight: 700; color: #64748b;
-          text-transform: uppercase; letter-spacing: 0.6px;
-        }
+        .pj-label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; }
         .pj-label span { color: #ef4444; margin-left: 2px; }
 
-        .pj-input, .pj-select, .pj-textarea {
-          width: 100%; padding: 12px 16px;
-          background: #f8fafc; border: 1px solid #e2e8f0;
-          border-radius: 10px; font-size: 15px;
-          font-family: 'DM Sans', sans-serif; color: #0f172a;
-          outline: none; transition: all 0.2s; -webkit-appearance: none;
-        }
+        .pj-input, .pj-select, .pj-textarea { width: 100%; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; font-family: 'DM Sans', sans-serif; color: #0f172a; outline: none; transition: all 0.2s; -webkit-appearance: none; }
         .pj-input::placeholder, .pj-textarea::placeholder { color: #94a3b8; }
-        .pj-input:focus, .pj-select:focus, .pj-textarea:focus {
-          border-color: #a5b4fc; background: white;
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
-        }
-        .pj-input.error, .pj-textarea.error {
-          border-color: #fca5a5; background: #fff5f5;
-        }
-        .pj-select {
-          cursor: pointer;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
-          background-repeat: no-repeat; background-position: right 14px center; background-size: 16px;
-          padding-right: 40px;
-        }
+        .pj-input:focus, .pj-select:focus, .pj-textarea:focus { border-color: #a5b4fc; background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.08); }
+        .pj-input.error, .pj-textarea.error { border-color: #fca5a5; background: #fff5f5; }
+        .pj-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 40px; }
         .pj-select option { background: white; color: #0f172a; }
         .pj-textarea { resize: vertical; min-height: 140px; line-height: 1.6; }
         .pj-error-msg { font-size: 12px; color: #ef4444; display: flex; align-items: center; gap: 4px; margin-top: 4px; }
         .pj-hint { font-size: 12px; color: #94a3b8; }
 
-        .pj-comp-chip {
-          padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
-          cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s;
-          font-family: 'DM Sans', sans-serif; display: inline-flex; align-items: center; gap: 6px;
-        }
+        .pj-comp-chip { padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s; font-family: 'DM Sans', sans-serif; display: inline-flex; align-items: center; gap: 6px; }
         .pj-comp-chip.paid { background: #f0fdf4; border-color: #bbf7d0; color: #16a34a; }
         .pj-comp-chip.paid.active { background: #dcfce7; border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.15); }
         .pj-comp-chip.unpaid { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
@@ -424,159 +313,61 @@ const PostJob = () => {
         .pj-stipend-group .pj-select { width: 140px; flex-shrink: 0; }
 
         .pj-rounds-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-        .pj-round-card {
-          background: #fafbff; border: 1px solid #e2e8f0;
-          border-radius: 12px; overflow: hidden; transition: all 0.2s;
-          animation: slideIn 0.3s ease;
-        }
+        .pj-round-card { background: #fafbff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; transition: all 0.2s; animation: slideIn 0.3s ease; }
         .pj-round-card:hover { border-color: #c7d2fe; box-shadow: 0 2px 8px rgba(99,102,241,0.07); }
-
-        .pj-round-header {
-          display: flex; align-items: center; gap: 12px;
-          padding: 14px 16px; cursor: pointer; user-select: none;
-          background: #fafbff;
-        }
-        .pj-round-num {
-          width: 28px; height: 28px;
-          background: #eef2ff; border: 1px solid #c7d2fe;
-          border-radius: 50%; display: flex; align-items: center; justify-content: center;
-          font-size: 12px; font-weight: 700; color: #6366f1; flex-shrink: 0;
-        }
+        .pj-round-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; background: #fafbff; }
+        .pj-round-num { width: 28px; height: 28px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #6366f1; flex-shrink: 0; }
         .pj-round-type-icon { font-size: 18px; flex-shrink: 0; }
         .pj-round-info { flex: 1; min-width: 0; }
-        .pj-round-info-title {
-          font-size: 14px; font-weight: 600; color: #1e293b;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
+        .pj-round-info-title { font-size: 14px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .pj-round-info-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-
         .pj-round-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-        .pj-round-action-btn {
-          width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-          background: none; border: none; cursor: pointer; border-radius: 6px;
-          color: #cbd5e1; transition: all 0.2s;
-        }
+        .pj-round-action-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; border-radius: 6px; color: #cbd5e1; transition: all 0.2s; }
         .pj-round-action-btn:hover { background: #f1f5f9; color: #64748b; }
         .pj-round-action-btn.danger:hover { background: #fef2f2; color: #ef4444; }
         .pj-round-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        .pj-round-body {
-          padding: 0 16px 16px; border-top: 1px solid #f1f5f9;
-          background: white; display: grid; gap: 14px;
-        }
+        .pj-round-body { padding: 0 16px 16px; border-top: 1px solid #f1f5f9; background: white; display: grid; gap: 14px; }
         .pj-round-body .pj-grid-2 { gap: 14px; margin-top: 14px; }
 
-        .pj-type-grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-          gap: 8px; margin-top: 10px;
-        }
-        .pj-type-opt {
-          display: flex; align-items: center; gap: 8px; padding: 10px 12px;
-          border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer;
-          font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.15s;
-          background: #f8fafc; font-family: 'DM Sans', sans-serif;
-        }
+        .pj-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 10px; }
+        .pj-type-opt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.15s; background: #f8fafc; font-family: 'DM Sans', sans-serif; }
         .pj-type-opt:hover { border-color: #c7d2fe; color: #6366f1; background: #eef2ff; }
         .pj-type-opt.active { background: #eef2ff; border-color: #818cf8; color: #6366f1; font-weight: 600; }
 
-        .pj-add-round-btn {
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          width: 100%; padding: 13px;
-          background: #fafafa; border: 1.5px dashed #c7d2fe;
-          border-radius: 10px; color: #6366f1; font-size: 14px; font-weight: 600;
-          cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-        }
+        .pj-add-round-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; background: #fafafa; border: 1.5px dashed #c7d2fe; border-radius: 10px; color: #6366f1; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
         .pj-add-round-btn:hover { background: #eef2ff; border-color: #818cf8; }
 
-        .pj-main-grid {
-          display: grid; grid-template-columns: 1fr 300px;
-          gap: 24px; align-items: start;
-        }
+        .pj-main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
         .pj-sidebar { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 16px; }
 
-        .pj-summary-card {
-          background: #f5f3ff; border: 1px solid #e0e7ff;
-          border-radius: 16px; padding: 20px;
-          box-shadow: 0 1px 4px rgba(99,102,241,0.07);
-        }
-        .pj-summary-card h3 {
-          font-family: 'Syne', sans-serif;
-          font-size: 15px; font-weight: 700; color: #6366f1; margin-bottom: 16px;
-        }
-        .pj-summary-item {
-          display: flex; align-items: flex-start; gap: 10px;
-          padding: 10px 0; border-bottom: 1px solid #ede9fe;
-        }
+        .pj-summary-card { background: #f5f3ff; border: 1px solid #e0e7ff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 4px rgba(99,102,241,0.07); }
+        .pj-summary-card h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #6366f1; margin-bottom: 16px; }
+        .pj-summary-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #ede9fe; }
         .pj-summary-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .pj-summary-icon {
-          width: 28px; height: 28px; background: #ede9fe;
-          border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        .pj-summary-label {
-          font-size: 11px; color: #94a3b8; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.5px;
-        }
+        .pj-summary-icon { width: 28px; height: 28px; background: #ede9fe; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pj-summary-label { font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .pj-summary-value { font-size: 13px; color: #1e293b; font-weight: 500; margin-top: 2px; }
 
-        .pj-submit-btn {
-          width: 100%; padding: 15px 24px;
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
-          color: white; border: none; border-radius: 12px;
-          font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif;
-          cursor: pointer; display: flex; align-items: center; justify-content: center;
-          gap: 10px; transition: all 0.2s; letter-spacing: 0.2px;
-        }
-        .pj-submit-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 25px rgba(99,102,241,0.35);
-        }
+        .pj-submit-btn { width: 100%; padding: 15px 24px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; letter-spacing: 0.2px; }
+        .pj-submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.35); }
         .pj-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-        .pj-takedown-btn {
-          width: 100%; padding: 13px 24px;
-          background: #fff7ed; color: #c2410c;
-          border: 1px solid #fed7aa; border-radius: 12px;
-          font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
-          cursor: pointer; display: flex; align-items: center; justify-content: center;
-          gap: 8px; transition: all 0.2s;
-        }
+        .pj-takedown-btn { width: 100%; padding: 13px 24px; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 12px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
         .pj-takedown-btn:hover:not(:disabled) { background: #ffedd5; border-color: #fdba74; }
         .pj-takedown-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .pj-nav-btn {
-          padding: 13px 20px; border-radius: 12px;
-          font-size: 14px; font-weight: 600; cursor: pointer;
-          font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-          border: none; display: inline-flex; align-items: center; gap: 8px;
-        }
-        .pj-nav-btn-prev {
-          background: white; border: 1px solid #e2e8f0; color: #94a3b8;
-        }
+        .pj-nav-btn { padding: 13px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; border: none; display: inline-flex; align-items: center; gap: 8px; }
+        .pj-nav-btn-prev { background: white; border: 1px solid #e2e8f0; color: #94a3b8; }
         .pj-nav-btn-prev:hover { background: #f8fafc; color: #64748b; }
-        .pj-nav-btn-next {
-          flex: 1; background: #eef2ff; border: 1px solid #c7d2fe; color: #6366f1;
-          justify-content: center;
-        }
+        .pj-nav-btn-next { flex: 1; background: #eef2ff; border: 1px solid #c7d2fe; color: #6366f1; justify-content: center; }
         .pj-nav-btn-next:hover { background: #e0e7ff; }
 
-        .pj-unlinked-warning {
-          background: #fef2f2; border: 1px solid #fecaca;
-          border-radius: 12px; padding: 20px; text-align: center;
-        }
-        .pj-unlinked-warning p { font-size: 14px; color: #dc2626; margin-bottom: 12px; }
-        .pj-unlinked-warning button {
-          padding: 10px 20px; background: #fecaca; color: #991b1b;
-          border: 1px solid #fca5a5; border-radius: 8px;
-          font-size: 14px; font-weight: 600; cursor: pointer;
-          font-family: 'DM Sans', sans-serif; transition: all 0.2s;
-        }
-        .pj-unlinked-warning button:hover { background: #fca5a5; }
+        .pj-unverified-warning { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 20px; text-align: center; }
+        .pj-unverified-warning p { font-size: 14px; color: #dc2626; margin-bottom: 12px; }
+        .pj-unverified-warning button { padding: 10px 20px; background: #fecaca; color: #991b1b; border: 1px solid #fca5a5; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .pj-unverified-warning button:hover { background: #fca5a5; }
 
-        .pj-info-note {
-          padding: 14px; background: #f0f9ff; border: 1px solid #bae6fd;
-          border-radius: 12px; font-size: 13px; color: #0369a1;
-          display: flex; gap: 10px; align-items: flex-start;
-        }
+        .pj-info-note { padding: 14px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; font-size: 13px; color: #0369a1; display: flex; gap: 10px; align-items: flex-start; }
 
         @media (max-width: 860px) {
           .pj-main-grid { grid-template-columns: 1fr; }
@@ -605,10 +396,11 @@ const PostJob = () => {
               <h1>{existingJob ? "Edit Job Listing" : "Post a New Job"}</h1>
               <p>{existingJob ? "Update your job posting details" : "Create a role and define your entire hiring pipeline"}</p>
             </div>
-            <div className={`pj-business-pill ${linkedBusiness ? "linked" : "unlinked"}`}>
-              {linkedBusiness
-                ? <><CheckCircle2 size={14} />{businessDetails?.name || "Business Linked"}</>
-                : <><XCircle size={14} />Not Linked</>}
+            {/* ✅ Verification pill — replaces old business pill */}
+            <div className={`pj-business-pill ${isVerified ? "linked" : "unlinked"}`}>
+              {isVerified
+                ? <><ShieldCheck size={14} />Verified Recruiter</>
+                : <><XCircle size={14} />{verificationStatus === "pending" ? "Verification Pending" : "Not Verified"}</>}
             </div>
           </div>
 
@@ -645,7 +437,7 @@ const PostJob = () => {
             </div>
           )}
 
-          {/* ── Tabs — all type="button" to never trigger form submit ── */}
+          {/* Tabs */}
           <div className="pj-tabs">
             {sections.map((s) => {
               const Icon = s.icon;
@@ -663,17 +455,11 @@ const PostJob = () => {
             })}
           </div>
 
-          {/* ── Main layout ── */}
+          {/* Main layout */}
           <div className="pj-main-grid">
-
-            {/* 
-              KEY FIX: The <div> replaces <form> entirely.
-              Nothing here can accidentally submit.
-              The submit button calls handleSubmit() directly via onClick.
-            */}
             <div>
 
-              {/* ── BASICS ── */}
+              {/* BASICS */}
               {activeSection === "basics" && (
                 <div className="pj-card">
                   <div className="pj-card-title">Core Details</div>
@@ -686,7 +472,7 @@ const PostJob = () => {
                       onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                       className={`pj-input ${formErrors.title ? "error" : ""}`}
                       placeholder="e.g. Senior Frontend Engineer"
-                      disabled={loading || !linkedBusiness}
+                      disabled={loading || !isVerified}
                     />
                     {formErrors.title && <span className="pj-error-msg"><AlertCircle size={12} />{formErrors.title}</span>}
                   </div>
@@ -694,16 +480,17 @@ const PostJob = () => {
                   <div className="pj-grid-2">
                     <div className="pj-field">
                       <label className="pj-label">Company Name</label>
+                      {/* ✅ Auto-filled from recruiter profile, but editable */}
                       <input
                         value={form.company}
                         onChange={(e) => setForm((p) => ({ ...p, company: e.target.value }))}
                         className="pj-input"
                         placeholder="Your company name"
-                        disabled={loading || !!businessDetails}
-                        readOnly={!!businessDetails}
-                        style={{ opacity: businessDetails ? 0.6 : 1 }}
+                        disabled={loading || !isVerified}
                       />
-                      {businessDetails && <span className="pj-hint">✓ Auto-filled from business profile</span>}
+                      {user?.recruiterProfile?.companyName && (
+                        <span className="pj-hint">✓ Auto-filled from your recruiter profile</span>
+                      )}
                     </div>
                     <div className="pj-field">
                       <label className="pj-label">Location <span>*</span></label>
@@ -712,7 +499,7 @@ const PostJob = () => {
                         onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
                         className={`pj-input ${formErrors.location ? "error" : ""}`}
                         placeholder="e.g. Bangalore / Remote"
-                        disabled={loading || !linkedBusiness}
+                        disabled={loading || !isVerified}
                       />
                       {formErrors.location && <span className="pj-error-msg"><AlertCircle size={12} />{formErrors.location}</span>}
                     </div>
@@ -748,7 +535,7 @@ const PostJob = () => {
                       onChange={(e) => setForm((p) => ({ ...p, skills: e.target.value }))}
                       className="pj-input"
                       placeholder="React, Node.js, PostgreSQL (comma-separated)"
-                      disabled={loading || !linkedBusiness}
+                      disabled={loading || !isVerified}
                     />
                     <span className="pj-hint">Separate multiple skills with commas</span>
                     {form.skills.trim() && (
@@ -768,7 +555,7 @@ const PostJob = () => {
                       className={`pj-textarea ${formErrors.description ? "error" : ""}`}
                       placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity exciting..."
                       rows={7}
-                      disabled={loading || !linkedBusiness}
+                      disabled={loading || !isVerified}
                     />
                     {formErrors.description && <span className="pj-error-msg"><AlertCircle size={12} />{formErrors.description}</span>}
                     <span className="pj-hint">{form.description.length} / 5000 chars · min 50 required</span>
@@ -776,7 +563,7 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* ── COMPENSATION ── */}
+              {/* COMPENSATION */}
               {activeSection === "compensation" && (
                 <div className="pj-card">
                   <div className="pj-card-title">Compensation</div>
@@ -805,13 +592,13 @@ const PostJob = () => {
                           onChange={(e) => setForm((p) => ({ ...p, stipend: e.target.value }))}
                           className={`pj-input ${formErrors.stipend ? "error" : ""}`}
                           placeholder="e.g. ₹15,000 or ₹8-12 LPA"
-                          disabled={loading || !linkedBusiness}
+                          disabled={loading || !isVerified}
                         />
                         <select
                           value={form.stipendPeriod}
                           onChange={(e) => setForm((p) => ({ ...p, stipendPeriod: e.target.value }))}
                           className="pj-select"
-                          disabled={loading || !linkedBusiness}
+                          disabled={loading || !isVerified}
                         >
                           <option value="monthly">/ Month</option>
                           <option value="yearly">/ Year</option>
@@ -834,7 +621,7 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* ── ROUNDS ── */}
+              {/* ROUNDS */}
               {activeSection === "rounds" && (
                 <div className="pj-card">
                   <div className="pj-card-title">Hiring Process</div>
@@ -942,7 +729,7 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* ── Navigation buttons ── */}
+              {/* Navigation buttons */}
               <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                 {activeSection !== "basics" && (
                   <button type="button" className="pj-nav-btn pj-nav-btn-prev" onClick={goPrev}>
@@ -955,31 +742,34 @@ const PostJob = () => {
                     Next →
                   </button>
                 ) : (
-                  /* ── SUBMIT — type="button" + onClick only, never a form submit ── */
+                  // ✅ Submit button — gated on isVerified, not linkedBusiness
                   <button
                     type="button"
                     className="pj-submit-btn"
                     onClick={handleSubmit}
-                    disabled={loading || !linkedBusiness || !isFormValid()}
+                    disabled={loading || !isVerified || !isFormValid()}
                     style={{ flex: 1 }}
                   >
                     {loading
                       ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />Submitting…</>
-                      : !linkedBusiness
-                        ? "🔗 Link to Business First"
+                      : !isVerified
+                        ? verificationStatus === "pending"
+                          ? "⏳ Verification Pending"
+                          : "🔒 Verification Required"
                         : !isFormValid()
                           ? "⏳ Complete Required Fields"
                           : existingJob
                             ? "✅ Update Job Listing"
-                            : "🚀 Post for Approval"}
+                            : "🚀 Post Job Live"}
                   </button>
                 )}
               </div>
             </div>
 
-            {/* ── Sidebar ── */}
+            {/* Sidebar */}
             <div className="pj-sidebar">
-              {linkedBusiness ? (
+              {/* ✅ Show job preview if verified, warning if not */}
+              {isVerified ? (
                 <div className="pj-summary-card">
                   <h3>Job Preview</h3>
                   {[
@@ -1022,9 +812,14 @@ const PostJob = () => {
                   </div>
                 </div>
               ) : (
-                <div className="pj-unlinked-warning">
+                // ✅ Unverified warning — replaces old "not linked to business" warning
+                <div className="pj-unverified-warning">
                   <XCircle size={32} color="#dc2626" style={{ margin: "0 auto 12px", display: "block" }} />
-                  <p>You must link to an approved business before posting jobs.</p>
+                  <p>
+                    {verificationStatus === "pending"
+                      ? "Your profile is under admin review. You can post jobs once approved."
+                      : "Your profile must be verified by admin before posting jobs."}
+                  </p>
                   <button type="button" onClick={() => navigate("/dashboard")}>Go to Dashboard →</button>
                 </div>
               )}
@@ -1037,9 +832,10 @@ const PostJob = () => {
                 </button>
               )}
 
+              {/* ✅ Updated info note */}
               <div className="pj-info-note">
                 <FileText size={14} color="#0284c7" style={{ flexShrink: 0, marginTop: 1 }} />
-                <span>All new jobs go to the business owner for approval before going live. Edits to live jobs resubmit for review.</span>
+                <span>As a verified recruiter, jobs you post go live immediately — no additional approvals needed.</span>
               </div>
             </div>
           </div>

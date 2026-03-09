@@ -12,6 +12,7 @@ exports.getStats = async (req, res) => {
       totalUsers, jobseekers, recruiters, businesses, admins,
       approvedBusinesses, pendingBusinesses, rejectedBusinesses,
       liveJobs, pendingJobs, rejectedJobs, profilesCompleted,
+      pendingRecruiterVerifications,  // ← NEW
     ] = await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ role: "jobseeker" }),
@@ -25,6 +26,8 @@ exports.getStats = async (req, res) => {
       Job.countDocuments({ status: "pending_business" }),
       Job.countDocuments({ status: "rejected_business" }),
       User.countDocuments({ profileCompleted: true }),
+      // ← NEW: recruiters awaiting admin verification
+      User.countDocuments({ role: "recruiter", "recruiterProfile.verificationStatus": "pending" }),
     ]);
 
     res.json({
@@ -32,6 +35,7 @@ exports.getStats = async (req, res) => {
       totalUsers, jobseekers, recruiters, businesses, admins,
       approvedBusinesses, pendingBusinesses, rejectedBusinesses,
       liveJobs, pendingJobs, rejectedJobs, profilesCompleted,
+      pendingRecruiters: pendingRecruiterVerifications, // ← NEW
     });
   } catch (err) {
     console.error("GET STATS ERROR:", err);
@@ -53,7 +57,7 @@ exports.getUsers = async (req, res) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
+        { name:  { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
       ];
     }
@@ -123,7 +127,7 @@ exports.getJobs = async (req, res) => {
 
     const jobs = await Job.find(query)
       .populate("recruiter", "name email")
-      .populate("business", "name businessProfile")
+      .populate("business",  "name businessProfile")
       .sort({ createdAt: -1 })
       .limit(500);
 
@@ -158,7 +162,6 @@ exports.updateJobStatus = async (req, res) => {
     }
 
     await job.save();
-
     res.json({ success: true, message: `Job status updated to "${job.status}"`, job });
   } catch (err) {
     console.error("UPDATE JOB STATUS ERROR:", err);
@@ -182,27 +185,19 @@ exports.deleteJob = async (req, res) => {
 
 /* =========================================================
    APPROVE BUSINESS
-   - Sends welcome-back re-approval email if business was
-     previously revoked (status was "pending" after revoke)
-   - Sends normal first-approval email otherwise
 ========================================================= */
 exports.approveBusiness = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Fetch full business BEFORE updating (includes email which may be stripped by select("-password"))
     const businessBefore = await User.findOne({ _id: id, role: "business" });
     if (!businessBefore) return res.status(404).json({ success: false, message: "Business not found" });
 
-    // Detect re-approval: check if this business was ever revoked by looking for
-    // removed_by_business links OR if the business had a previous approved status
-    // that was reset. We also check the businessProfile directly as a fallback.
     const wasRevoked = await RecruiterBusinessLink.exists({
       business: id,
       status: "removed_by_business",
     });
 
-    // Update status
     const business = await User.findOneAndUpdate(
       { _id: id, role: "business" },
       { "businessProfile.status": "approved", "businessProfile.verified": true },
@@ -226,32 +221,20 @@ exports.approveBusiness = async (req, res) => {
     }
 
     const businessName = businessBefore.businessProfile?.businessName || businessBefore.name;
-    const ownerEmail   = businessBefore.email;
-    const ownerName    = businessBefore.name;
 
-    console.log(`📧 Sending approval email to: ${ownerEmail} | wasRevoked: ${!!wasRevoked}`);
-
-    // ✅ Send the right email — use businessBefore data to guarantee email is present
     if (wasRevoked) {
       await email.sendBusinessReApprovedEmail(
-        ownerEmail,
-        ownerName,
-        businessName,
-        jobsRestored
+        businessBefore.email, businessBefore.name, businessName, jobsRestored
       ).catch(err => console.error("❌ Re-approval email failed:", err));
     } else {
       await email.sendBusinessApprovedEmail(
-        ownerEmail,
-        ownerName,
-        businessName
+        businessBefore.email, businessBefore.name, businessName
       ).catch(err => console.error("❌ Approval email failed:", err));
     }
 
-    console.log(`✅ Approval email sent to ${ownerEmail}`);
-
     res.json({
       success: true,
-      message: `"${businessName}" approved successfully. ${jobsRestored} previously revoked job(s) restored to pending.`,
+      message: `"${businessName}" approved. ${jobsRestored} revoked job(s) restored.`,
       business,
       jobsRestored,
     });
@@ -306,19 +289,9 @@ exports.rejectBusiness = async (req, res) => {
 
     const businessName = business.businessProfile?.businessName || business.name;
 
-    // ✅ Email business owner — rejected
-    email.sendBusinessRejectedEmail(
-      business.email,
-      business.name,
-      businessName,
-      reason
-    ).catch(console.error);
+    email.sendBusinessRejectedEmail(business.email, business.name, businessName, reason).catch(console.error);
 
-    res.json({
-      success: true,
-      message: `"${businessName}" rejected.`,
-      business,
-    });
+    res.json({ success: true, message: `"${businessName}" rejected.`, business });
   } catch (err) {
     console.error("REJECT BUSINESS ERROR:", err);
     res.status(500).json({ success: false, message: "Failed to reject business" });
@@ -332,7 +305,6 @@ exports.revokeBusiness = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. Reset business back to pending
     const business = await User.findOneAndUpdate(
       { _id: id, role: "business" },
       { "businessProfile.status": "pending", "businessProfile.verified": false },
@@ -343,7 +315,6 @@ exports.revokeBusiness = async (req, res) => {
 
     const businessName = business.businessProfile?.businessName || business.name;
 
-    // 2. Find all recruiters linked to this business
     const linkedRecruiters = await User.find({
       role: "recruiter",
       "recruiterProfile.linkedBusiness": id,
@@ -353,45 +324,30 @@ exports.revokeBusiness = async (req, res) => {
     let jobsRevoked = 0;
 
     if (recruiterIds.length > 0) {
-      // 3. Revoke their active/pending jobs
       const jobResult = await Job.updateMany(
-        {
-          recruiter: { $in: recruiterIds },
-          status: { $in: ["approved", "pending_business"] },
-        },
+        { recruiter: { $in: recruiterIds }, status: { $in: ["approved", "pending_business"] } },
         { $set: { status: "revoked" } }
       );
       jobsRevoked = jobResult.modifiedCount;
 
-      // 4. Unlink recruiters
       await User.updateMany(
         { _id: { $in: recruiterIds } },
         { $unset: { "recruiterProfile.linkedBusiness": "" } }
       );
 
-      // 5. Mark links as removed_by_business (this flag is used to detect re-approval later)
       await RecruiterBusinessLink.updateMany(
         { recruiter: { $in: recruiterIds }, business: id, status: "approved" },
         { $set: { status: "removed_by_business", removedAt: new Date() } }
       );
 
-      // ✅ Email each affected recruiter — jobs paused + unlinked
       linkedRecruiters.forEach(recruiter => {
         email.sendRecruiterJobsRevokedEmail(
-          recruiter.email,
-          recruiter.name,
-          businessName,
-          jobsRevoked
+          recruiter.email, recruiter.name, businessName, jobsRevoked
         ).catch(console.error);
       });
     }
 
-    // ✅ Email business owner — revoked
-    email.sendBusinessRevokedEmail(
-      business.email,
-      business.name,
-      businessName
-    ).catch(console.error);
+    email.sendBusinessRevokedEmail(business.email, business.name, businessName).catch(console.error);
 
     res.json({
       success: true,
@@ -403,5 +359,96 @@ exports.revokeBusiness = async (req, res) => {
   } catch (err) {
     console.error("REVOKE BUSINESS ERROR:", err);
     res.status(500).json({ success: false, message: "Failed to revoke business" });
+  }
+};
+
+/* =========================================================
+   GET PENDING RECRUITER VERIFICATIONS  ← NEW
+   Returns all recruiters with verificationStatus = "pending"
+========================================================= */
+exports.getPendingVerificationRecruiters = async (req, res) => {
+  try {
+    const recruiters = await User.find({
+      role: "recruiter",
+      "recruiterProfile.verificationStatus": "pending",
+    })
+      .select("-password")
+      .sort({ "recruiterProfile.verificationRequestedAt": 1 }); // oldest first
+
+    res.json(recruiters);
+  } catch (err) {
+    console.error("GET PENDING VERIFICATIONS ERROR:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch pending verifications" });
+  }
+};
+
+/* =========================================================
+   VERIFY RECRUITER  ← NEW
+   PATCH /api/admin/recruiters/:id/verify
+   Body: { status: "approved" | "rejected", reason?: string }
+========================================================= */
+exports.verifyRecruiter = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason } = req.body;
+
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({ success: false, message: 'status must be "approved" or "rejected"' });
+    }
+
+    const recruiter = await User.findOne({ _id: id, role: "recruiter" });
+    if (!recruiter) {
+      return res.status(404).json({ success: false, message: "Recruiter not found" });
+    }
+
+    // Build update payload
+    const updateFields = {
+      "recruiterProfile.verificationStatus": status,
+      "recruiterProfile.verificationReviewedAt": new Date(),
+    };
+
+    if (status === "rejected") {
+      updateFields["recruiterProfile.rejectionReason"] = reason || "No reason provided";
+    } else {
+      // Clear any old rejection reason on approval
+      updateFields["recruiterProfile.rejectionReason"] = "";
+    }
+
+    await User.findByIdAndUpdate(id, { $set: updateFields });
+
+    const companyName = recruiter.recruiterProfile?.companyName;
+
+    if (status === "approved") {
+      // ✅ Email recruiter — verified, can now post jobs
+      email.sendRecruiterVerifiedEmail(
+        recruiter.email,
+        recruiter.name,
+        companyName
+      ).catch(console.error);
+
+      console.log(`✅ Recruiter ${recruiter.name} (${recruiter.email}) verified by admin`);
+    } else {
+      // ✅ Email recruiter — rejected with reason
+      email.sendRecruiterVerificationRejectedEmail(
+        recruiter.email,
+        recruiter.name,
+        companyName,
+        reason
+      ).catch(console.error);
+
+      console.log(`❌ Recruiter ${recruiter.name} verification rejected by admin`);
+    }
+
+    res.json({
+      success: true,
+      message: status === "approved"
+        ? `${recruiter.name} verified — they can now post jobs.`
+        : `${recruiter.name}'s verification rejected.`,
+      recruiterId: id,
+      status,
+    });
+  } catch (err) {
+    console.error("VERIFY RECRUITER ERROR:", err);
+    res.status(500).json({ success: false, message: "Failed to update verification status" });
   }
 };

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const protect = require("../middleware/auth");
+const protect        = require("../middleware/auth");
 const authorizeRoles = require("../middleware/role");
 
 const {
@@ -16,6 +16,8 @@ const {
   getBusinesses,
   rejectBusiness,
   revokeBusiness,
+  getPendingVerificationRecruiters, // ← NEW
+  verifyRecruiter,                  // ← NEW
 } = require("../controllers/admin.controller");
 
 // ── Stats ──────────────────────────────────────────────────
@@ -36,5 +38,21 @@ router.get("/businesses",               protect, authorizeRoles("admin"), getBus
 router.patch("/businesses/:id/approve", protect, authorizeRoles("admin"), approveBusiness);
 router.patch("/businesses/:id/reject",  protect, authorizeRoles("admin"), rejectBusiness);
 router.patch("/businesses/:id/revoke",  protect, authorizeRoles("admin"), revokeBusiness);
+
+// ── Recruiter Verifications ← NEW ──────────────────────────
+// GET  /api/admin/recruiters/pending-verification  → list all pending
+// PATCH /api/admin/recruiters/:id/verify           → approve or reject
+router.get(
+  "/recruiters/pending-verification",
+  protect,
+  authorizeRoles("admin"),
+  getPendingVerificationRecruiters
+);
+router.patch(
+  "/recruiters/:id/verify",
+  protect,
+  authorizeRoles("admin"),
+  verifyRecruiter
+);
 
 module.exports = router;

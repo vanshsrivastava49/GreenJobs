@@ -6,7 +6,6 @@ import {
   Briefcase,
   Users,
   Eye,
-  Building2,
   CheckCircle,
   Clock,
   XCircle,
@@ -15,16 +14,16 @@ import {
   AlertCircle,
   MapPin,
   DollarSign,
-  Send,
-  Check,
-  LogOut,
   ToggleRight,
   ToggleLeft,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import API_BASE_URL from "../config/api";
+
 const RecruiterDashboard = () => {
   const navigate = useNavigate();
   const { user, token, refreshUser } = useAuth();
@@ -33,22 +32,24 @@ const RecruiterDashboard = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
-  const [businesses, setBusinesses] = useState([]);
-  const [showBusinessModal, setShowBusinessModal] = useState(false);
-  const [loadingBusinesses, setLoadingBusinesses] = useState(false);
-  const [selectedBusinessId, setSelectedBusinessId] = useState(null);
-  const [linkingBusiness, setLinkingBusiness] = useState(false);
-  const [unlinkingBusiness, setUnlinkingBusiness] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [loadingRequests, setLoadingRequests] = useState(false);
   const [togglingJob, setTogglingJob] = useState(null);
 
   const profileProgress = user?.profileProgress || 0;
   const isProfileComplete = user?.profileCompleted;
   const profile = user?.recruiterProfile || {};
-  const linkedBusinessId = profile.linkedBusiness;
-  const isLinkedToBusiness = !!linkedBusinessId;
 
+  // ── New: admin verification status ──────────────────────────────────────────
+  // Expected values on user.recruiterProfile.verificationStatus:
+  //   "pending"  – submitted, waiting for admin
+  //   "approved" – admin approved, can post freely
+  //   "rejected" – admin rejected
+  //   undefined  – profile not yet submitted
+  const verificationStatus = profile.verificationStatus; // "pending" | "approved" | "rejected" | undefined
+  const isVerified = verificationStatus === "approved";
+  const isPendingVerification = verificationStatus === "pending";
+  const isRejected = verificationStatus === "rejected";
+
+  // ── Data fetchers ────────────────────────────────────────────────────────────
   const fetchMyJobs = useCallback(async () => {
     if (!token) return;
     try {
@@ -80,49 +81,29 @@ const RecruiterDashboard = () => {
     }
   }, [token]);
 
-  const fetchBusinesses = useCallback(async () => {
+  // ── Submit profile for admin verification ────────────────────────────────────
+  const requestVerification = async () => {
     if (!token) return;
     try {
-      setLoadingBusinesses(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/api/profile/business/approved`,
+      await axios.post(
+        `${API_BASE_URL}/api/profile/recruiter/request-verification`,
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const businessesData = Array.isArray(res.data) ? res.data : [];
-      setBusinesses(businessesData);
-      if (businessesData.length === 0) {
-        toast.error("No approved businesses available");
-      }
+      toast.success("Verification request sent to admin!");
+      toast("Admin will review your profile within 24 hours", {
+        duration: 6000,
+        icon: "⏰",
+      });
+      await refreshUser();
     } catch (err) {
-      console.error("Businesses fetch error:", err);
-      setBusinesses([]);
-      toast.error("Failed to load businesses");
-    } finally {
-      setLoadingBusinesses(false);
+      toast.error(err.response?.data?.message || "Failed to send request");
     }
-  }, [token]);
+  };
 
-  const fetchPendingRequests = useCallback(async () => {
-    if (!token) return;
-    try {
-      setLoadingRequests(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/api/profile/recruiter/pending-requests`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setPendingRequests(res.data || []);
-    } catch (err) {
-      setPendingRequests([]);
-    } finally {
-      setLoadingRequests(false);
-    }
-  }, [token]);
-
+  // ── Toggle job open/closed ───────────────────────────────────────────────────
   const toggleJobStatus = async (jobId, currentIsOpen) => {
-    if (!token || !jobId) {
-      toast.error("Missing token or job ID");
-      return;
-    }
+    if (!token || !jobId) return;
     setTogglingJob(jobId);
     try {
       await axios.patch(
@@ -135,97 +116,30 @@ const RecruiterDashboard = () => {
           },
         }
       );
-      setJobs((prevJobs) =>
-        prevJobs.map((job) =>
-          job._id === jobId ? { ...job, isOpen: !currentIsOpen } : job
-        )
+      setJobs((prev) =>
+        prev.map((j) => (j._id === jobId ? { ...j, isOpen: !currentIsOpen } : j))
       );
-      toast.success(!currentIsOpen ? "Job reopened successfully!" : "Job closed successfully!");
+      toast.success(!currentIsOpen ? "Job reopened!" : "Job closed!");
     } catch (err) {
-      console.error("Toggle job status error:", err);
       toast.error(err.response?.data?.message || "Failed to toggle job status");
     } finally {
       setTogglingJob(null);
     }
   };
 
-  const linkToBusiness = async (businessId) => {
-    if (!token || !businessId) {
-      toast.error("Missing token or business ID");
-      return;
-    }
-    try {
-      setLinkingBusiness(true);
-      const response = await axios.post(
-        `${API_BASE_URL}/api/profile/recruiter/request-business`,
-        { businessId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 10000,
-        }
-      );
-      if (response.data.status === "approved") {
-        toast.success("Already linked to this business!");
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        toast.success("Request sent successfully!");
-        toast("Business owner will review your request within 24 hours", {
-          duration: 6000,
-          icon: "⏰",
-        });
-        setShowBusinessModal(false);
-        setTimeout(() => window.location.reload(), 1500);
-      }
-    } catch (err) {
-      console.error("Request error:", err);
-      toast.error(err.response?.data?.message || "Failed to send request");
-    } finally {
-      setLinkingBusiness(false);
-    }
-  };
-
-  const unlinkBusiness = async () => {
-    if (!token) {
-      toast.error("Not authenticated");
-      return;
-    }
-    const confirmed = window.confirm(
-      "Are you sure you want to unlink from this business? You will need to request access again to post jobs."
-    );
-    if (!confirmed) return;
-    try {
-      setUnlinkingBusiness(true);
-      const response = await axios.post(
-        `${API_BASE_URL}/api/profile/recruiter/unlink-business`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
-      );
-      toast.success(response.data.message || "Business unlinked successfully");
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (err) {
-      console.error("Unlink error:", err);
-      toast.error(err.response?.data?.message || "Failed to unlink business");
-    } finally {
-      setUnlinkingBusiness(false);
-    }
-  };
-
   useEffect(() => {
     if (token) {
       fetchMyJobs();
-      fetchPendingRequests();
       fetchAppCount();
     }
-  }, [fetchMyJobs, fetchPendingRequests, fetchAppCount, token]);
+  }, [fetchMyJobs, fetchAppCount, token]);
 
+  // ── Stats ────────────────────────────────────────────────────────────────────
   const stats = [
     {
       icon: Briefcase,
       label: "Active Jobs",
-      value: jobs.filter((j) => j.status === "approved" && j.isOpen).length,
+      value: jobs.filter((j) => j.isOpen).length,
       color: "#3b82f6",
     },
     {
@@ -241,18 +155,22 @@ const RecruiterDashboard = () => {
       color: "#8b5cf6",
     },
     {
-      icon: Building2,
-      label: "Business Status",
-      value: isLinkedToBusiness
-        ? "Linked"
-        : pendingRequests.length > 0
-        ? `${pendingRequests.length} Pending`
-        : "Not Linked",
-      color: isLinkedToBusiness
+      icon: ShieldCheck,
+      label: "Verification",
+      value: isVerified
+        ? "Verified"
+        : isPendingVerification
+        ? "Pending"
+        : isRejected
+        ? "Rejected"
+        : "Not Sent",
+      color: isVerified
         ? "#10b981"
-        : pendingRequests.length > 0
+        : isPendingVerification
         ? "#f59e0b"
-        : "#ef4444",
+        : isRejected
+        ? "#ef4444"
+        : "#94a3b8",
     },
   ];
 
@@ -260,20 +178,14 @@ const RecruiterDashboard = () => {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          background: #f8fafc;
-          color: #0f172a;
-        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #0f172a; }
 
         .dashboard-wrapper { background: #f8fafc; min-height: 100vh; }
         .dashboard-container { max-width: 1280px; margin: 0 auto; padding: 24px; }
 
         .page-header { margin-bottom: 32px; }
-        .page-title { font-size: 28px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .page-title  { font-size: 28px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
         .page-subtitle { font-size: 15px; color: #64748b; font-weight: 400; }
 
         .alert-banner {
@@ -284,6 +196,7 @@ const RecruiterDashboard = () => {
         .alert-banner.warning { background: #fffbeb; border-color: #fde047; }
         .alert-banner.info    { background: #eff6ff; border-color: #93c5fd; }
         .alert-banner.success { background: #f0fdf4; border-color: #86efac; }
+        .alert-banner.danger  { background: #fef2f2; border-color: #fca5a5; }
 
         .alert-icon    { flex-shrink: 0; margin-top: 2px; }
         .alert-content { flex: 1; }
@@ -302,21 +215,13 @@ const RecruiterDashboard = () => {
         }
         .stat-card:hover { border-color: #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .stat-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-        .stat-icon {
-          width: 40px; height: 40px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center; background: #f1f5f9;
-        }
+        .stat-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; }
         .stat-value { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 4px; line-height: 1; }
         .stat-label { font-size: 13px; color: #64748b; font-weight: 500; }
 
-        .section-card {
-          background: white; border: 1px solid #e2e8f0; border-radius: 8px;
-          padding: 24px; margin-bottom: 24px;
-        }
-        .section-header {
-          display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
-        }
-        .section-title { font-size: 18px; font-weight: 700; color: #0f172a; }
+        .section-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .section-title  { font-size: 18px; font-weight: 700; color: #0f172a; }
 
         .action-group { display: flex; gap: 12px; flex-wrap: wrap; }
 
@@ -326,13 +231,11 @@ const RecruiterDashboard = () => {
           font-size: 14px; font-weight: 600; cursor: pointer;
           transition: all 0.2s; border: none; outline: none;
         }
-        .btn-primary { background: #3b82f6; color: white; }
-        .btn-primary:hover:not(:disabled) { background: #2563eb; }
+        .btn-primary   { background: #3b82f6; color: white; }
+        .btn-primary:hover:not(:disabled)   { background: #2563eb; }
         .btn-secondary { background: white; color: #475569; border: 1px solid #e2e8f0; }
         .btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
-        .btn-danger { background: white; color: #dc2626; border: 1px solid #fecaca; }
-        .btn-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
         .btn-sm { padding: 6px 12px; font-size: 13px; }
 
         .details-grid {
@@ -349,7 +252,7 @@ const RecruiterDashboard = () => {
         }
         .job-card:hover { border-color: #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .job-title { font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
-        .job-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+        .job-meta  { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
         .job-meta-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; }
         .job-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
@@ -358,7 +261,7 @@ const RecruiterDashboard = () => {
           border-radius: 20px; font-size: 12px; font-weight: 600; border: none;
           cursor: pointer; transition: all 0.2s; min-width: 90px; justify-content: center;
         }
-        .toggle-btn.open  { background: #d1fae5; color: #065f46; border: 1px solid #86efac; }
+        .toggle-btn.open   { background: #d1fae5; color: #065f46; border: 1px solid #86efac; }
         .toggle-btn.open:hover:not(:disabled)   { background: #a7f3d0; }
         .toggle-btn.closed { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
         .toggle-btn.closed:hover:not(:disabled) { background: #fecaca; }
@@ -368,11 +271,20 @@ const RecruiterDashboard = () => {
           display: inline-flex; align-items: center; gap: 6px;
           padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
         }
-        .status-pending  { background: #fef3c7; color: #92400e; }
-        .status-approved { background: #d1fae5; color: #065f46; }
-        .status-rejected { background: #fee2e2; color: #991b1b; }
-        .status-open     { background: #dbeafe; color: #1e40af; }
-        .status-closed   { background: #fef2f2; color: #dc2626; }
+        .status-open   { background: #dbeafe; color: #1e40af; }
+        .status-closed { background: #fef2f2; color: #dc2626; }
+
+        .verification-steps {
+          display: flex; flex-direction: column; gap: 12px; margin-top: 16px;
+        }
+        .step {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0;
+          font-size: 14px; color: #475569;
+        }
+        .step.done    { background: #f0fdf4; border-color: #86efac; color: #065f46; }
+        .step.active  { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+        .step.waiting { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
 
         .info-note {
           display: flex; align-items: center; gap: 8px; padding: 12px;
@@ -381,50 +293,19 @@ const RecruiterDashboard = () => {
         }
 
         .empty-state { text-align: center; padding: 48px 24px; }
-        .empty-icon {
+        .empty-icon  {
           width: 64px; height: 64px; margin: 0 auto 16px; background: #f1f5f9;
           border-radius: 50%; display: flex; align-items: center; justify-content: center;
         }
-        .empty-title { font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+        .empty-title       { font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
         .empty-description { font-size: 14px; color: #64748b; }
 
         .loading-state {
           display: flex; align-items: center; justify-content: center;
           gap: 8px; padding: 48px 24px; color: #64748b;
         }
-
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        .modal-overlay {
-          position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-          display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 24px;
-        }
-        .modal-content {
-          background: white; border-radius: 8px; max-width: 600px; width: 100%;
-          max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
-        }
-        .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
-        .modal-title { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-        .modal-description { font-size: 13px; color: #64748b; }
-        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
-
-        .business-card {
-          background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 6px;
-          padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;
-          display: flex; align-items: center; gap: 12px;
-        }
-        .business-card:hover   { border-color: #cbd5e1; }
-        .business-card.selected { border-color: #3b82f6; background: #eff6ff; }
-        .business-image { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-        .business-info  { flex: 1; }
-        .business-name  { font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
-        .business-category { font-size: 13px; color: #64748b; }
-
-        .modal-footer {
-          padding: 16px 24px; border-top: 1px solid #e2e8f0;
-          display: flex; gap: 12px; justify-content: flex-end;
-        }
 
         @media (max-width: 768px) {
           .dashboard-container { padding: 16px; }
@@ -453,12 +334,14 @@ const RecruiterDashboard = () => {
           </div>
 
           {/* ── Banners ── */}
+
+          {/* 1. Profile incomplete */}
           {!isProfileComplete && (
             <div className="alert-banner warning">
               <div className="alert-icon"><AlertCircle size={20} color="#f59e0b" /></div>
               <div className="alert-content">
                 <div className="alert-title">Complete Your Profile ({profileProgress}%)</div>
-                <div className="alert-description">Finish setting up your profile to unlock all features</div>
+                <div className="alert-description">Finish setting up your profile to request admin verification</div>
               </div>
               <div className="alert-action">
                 <button onClick={() => navigate("/complete-profile")} className="btn btn-primary btn-sm">
@@ -468,55 +351,65 @@ const RecruiterDashboard = () => {
             </div>
           )}
 
-          {pendingRequests.length > 0 && !isLinkedToBusiness && (
-            <div className="alert-banner info">
-              <div className="alert-icon"><Clock size={20} color="#3b82f6" /></div>
-              <div className="alert-content">
-                <div className="alert-title">
-                  {pendingRequests.length} Business Request{pendingRequests.length > 1 ? "s" : ""} Pending
-                </div>
-                <div className="alert-description">Waiting for business owner approval</div>
-              </div>
-            </div>
-          )}
-
-          {!isLinkedToBusiness && isProfileComplete && (
+          {/* 2. Profile complete but verification not requested */}
+          {isProfileComplete && !verificationStatus && (
             <div className="alert-banner warning">
-              <div className="alert-icon"><AlertCircle size={20} color="#f59e0b" /></div>
+              <div className="alert-icon"><ShieldAlert size={20} color="#f59e0b" /></div>
               <div className="alert-content">
-                <div className="alert-title">Request Access to Business</div>
-                <div className="alert-description">Connect with an approved business to start posting jobs</div>
+                <div className="alert-title">Get Verified to Post Jobs</div>
+                <div className="alert-description">
+                  Submit your profile for admin verification. Once approved you can post jobs instantly — no per-job approval needed.
+                </div>
               </div>
               <div className="alert-action">
-                <button
-                  onClick={() => { setShowBusinessModal(true); fetchBusinesses(); }}
-                  disabled={loadingBusinesses}
-                  className="btn btn-primary btn-sm"
-                >
-                  {loadingBusinesses ? (
-                    <><Loader2 size={14} className="spinner" /> Loading...</>
-                  ) : (
-                    <><Send size={14} /> Request Access</>
-                  )}
+                <button onClick={requestVerification} className="btn btn-primary btn-sm">
+                  <ShieldCheck size={14} /> Request Verification
                 </button>
               </div>
             </div>
           )}
 
-          {isLinkedToBusiness && (
-            <div className="alert-banner success">
-              <div className="alert-icon"><CheckCircle size={20} color="#10b981" /></div>
+          {/* 3. Pending admin review */}
+          {isPendingVerification && (
+            <div className="alert-banner info">
+              <div className="alert-icon"><Clock size={20} color="#3b82f6" /></div>
               <div className="alert-content">
-                <div className="alert-title">Linked to Business</div>
-                <div className="alert-description">Ready to post jobs and manage applications</div>
+                <div className="alert-title">Verification Pending</div>
+                <div className="alert-description">
+                  Your profile is under admin review. You'll be notified once approved — usually within 24 hours.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Verified */}
+          {isVerified && (
+            <div className="alert-banner success">
+              <div className="alert-icon"><ShieldCheck size={20} color="#10b981" /></div>
+              <div className="alert-content">
+                <div className="alert-title">Profile Verified ✓</div>
+                <div className="alert-description">
+                  You can post jobs directly — they go live immediately without any additional approvals.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. Rejected */}
+          {isRejected && (
+            <div className="alert-banner danger">
+              <div className="alert-icon"><XCircle size={20} color="#dc2626" /></div>
+              <div className="alert-content">
+                <div className="alert-title">Verification Rejected</div>
+                <div className="alert-description">
+                  {profile.rejectionReason
+                    ? `Reason: ${profile.rejectionReason}`
+                    : "Your verification was rejected. Please update your profile and resubmit."}
+                </div>
               </div>
               <div className="alert-action">
-                <button onClick={unlinkBusiness} disabled={unlinkingBusiness} className="btn btn-danger btn-sm">
-                  {unlinkingBusiness ? (
-                    <><Loader2 size={14} className="spinner" /> Unlinking...</>
-                  ) : (
-                    <><LogOut size={14} /> Unlink</>
-                  )}
+                <button onClick={requestVerification} className="btn btn-primary btn-sm">
+                  Resubmit
                 </button>
               </div>
             </div>
@@ -538,6 +431,29 @@ const RecruiterDashboard = () => {
             })}
           </div>
 
+          {/* ── How It Works (shown until verified) ── */}
+          {!isVerified && (
+            <div className="section-card">
+              <div className="section-header">
+                <h2 className="section-title">How to Start Posting Jobs</h2>
+              </div>
+              <div className="verification-steps">
+                <div className={`step ${isProfileComplete ? "done" : "active"}`}>
+                  <CheckCircle size={18} />
+                  <span><strong>Step 1:</strong> Complete your recruiter profile</span>
+                </div>
+                <div className={`step ${isPendingVerification || isVerified ? "done" : isProfileComplete ? "active" : "waiting"}`}>
+                  <Clock size={18} />
+                  <span><strong>Step 2:</strong> Submit for admin verification</span>
+                </div>
+                <div className={`step ${isVerified ? "done" : "waiting"}`}>
+                  <ShieldCheck size={18} />
+                  <span><strong>Step 3:</strong> Get approved — post jobs freely with no per-job approvals</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Quick Actions ── */}
           <div className="section-card">
             <div className="section-header">
@@ -546,8 +462,9 @@ const RecruiterDashboard = () => {
             <div className="action-group">
               <button
                 onClick={() => navigate("/post-job")}
-                disabled={!isProfileComplete || !isLinkedToBusiness}
+                disabled={!isVerified}
                 className="btn btn-primary"
+                title={!isVerified ? "Admin verification required to post jobs" : ""}
               >
                 <Plus size={16} /> Post New Job
               </button>
@@ -584,10 +501,12 @@ const RecruiterDashboard = () => {
               </div>
             )}
 
-            <div className="info-note">
-              <AlertCircle size={16} />
-              <span>Jobs require business owner approval before going live. Use toggle to open/close jobs anytime.</span>
-            </div>
+            {isVerified && (
+              <div className="info-note">
+                <ShieldCheck size={16} />
+                <span>Your account is verified. Jobs you post go live immediately.</span>
+              </div>
+            )}
           </div>
 
           {/* ── My Job Listings ── */}
@@ -608,9 +527,9 @@ const RecruiterDashboard = () => {
                 <div className="empty-icon"><Briefcase size={28} color="#cbd5e1" /></div>
                 <div className="empty-title">No jobs posted yet</div>
                 <div className="empty-description">
-                  {isLinkedToBusiness
+                  {isVerified
                     ? "Post your first job to get started"
-                    : "Link a business first to start posting jobs"}
+                    : "Complete admin verification to start posting jobs"}
                 </div>
               </div>
             )}
@@ -629,44 +548,30 @@ const RecruiterDashboard = () => {
                     </div>
                     <div className="job-footer">
                       <div>
-                        {job.status === "pending_business" && (
-                          <span className="status-badge status-pending">
-                            <Clock size={12} /> Business Review
+                        {job.isOpen ? (
+                          <span className="status-badge status-open">
+                            <CheckCircle size={12} /> Open
                           </span>
-                        )}
-                        {job.status === "approved" && !job.isOpen && (
+                        ) : (
                           <span className="status-badge status-closed">
                             <XCircle size={12} /> Closed
                           </span>
                         )}
-                        {job.status === "approved" && job.isOpen && (
-                          <span className="status-badge status-open">
-                            <CheckCircle size={12} /> Open
-                          </span>
-                        )}
-                        {job.status === "rejected_business" && (
-                          <span className="status-badge status-rejected">
-                            <XCircle size={12} /> Rejected
-                          </span>
-                        )}
                       </div>
-
-                      {job.status === "approved" && (
-                        <button
-                          onClick={() => toggleJobStatus(job._id, job.isOpen)}
-                          disabled={togglingJob === job._id}
-                          className={`toggle-btn ${job.isOpen ? "open" : "closed"}`}
-                          title={`Click to ${job.isOpen ? "close" : "open"} this job`}
-                        >
-                          {togglingJob === job._id ? (
-                            <Loader2 size={14} className="spinner" />
-                          ) : job.isOpen ? (
-                            <><ToggleLeft size={14} /> Close Job</>
-                          ) : (
-                            <><ToggleRight size={14} /> Open Job</>
-                          )}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => toggleJobStatus(job._id, job.isOpen)}
+                        disabled={togglingJob === job._id}
+                        className={`toggle-btn ${job.isOpen ? "open" : "closed"}`}
+                        title={`Click to ${job.isOpen ? "close" : "open"} this job`}
+                      >
+                        {togglingJob === job._id ? (
+                          <Loader2 size={14} className="spinner" />
+                        ) : job.isOpen ? (
+                          <><ToggleLeft size={14} /> Close Job</>
+                        ) : (
+                          <><ToggleRight size={14} /> Open Job</>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -679,79 +584,6 @@ const RecruiterDashboard = () => {
 
         </div>
       </div>
-
-      {/* ── Business Modal ── */}
-      {showBusinessModal && (
-        <div className="modal-overlay" onClick={() => setShowBusinessModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Request Business Access</h3>
-              <p className="modal-description">Select an approved business. Owner will review your request.</p>
-            </div>
-
-            <div className="modal-body">
-              {loadingBusinesses ? (
-                <div className="loading-state">
-                  <Loader2 size={20} className="spinner" />
-                  <span>Loading businesses...</span>
-                </div>
-              ) : businesses.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon"><Building2 size={28} color="#cbd5e1" /></div>
-                  <div className="empty-title">No approved businesses found</div>
-                  <div className="empty-description">Ask admin to approve businesses first</div>
-                </div>
-              ) : (
-                businesses.map((biz) => (
-                  <div
-                    key={biz._id}
-                    className={`business-card ${selectedBusinessId === biz._id ? "selected" : ""}`}
-                    onClick={() => !linkingBusiness && setSelectedBusinessId(biz._id)}
-                  >
-                    {biz.businessProfile?.images?.[0] && (
-                      <img
-                        src={biz.businessProfile.images[0]}
-                        alt={biz.businessProfile.businessName}
-                        className="business-image"
-                      />
-                    )}
-                    <div className="business-info">
-                      <div className="business-name">
-                        {biz.businessProfile?.businessName || biz.name || "Unnamed Business"}
-                      </div>
-                      <div className="business-category">
-                        {biz.businessProfile?.category || "Business"}
-                      </div>
-                    </div>
-                    {selectedBusinessId === biz._id && <Check size={20} color="#3b82f6" />}
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="modal-footer">
-              <button
-                onClick={() => setShowBusinessModal(false)}
-                disabled={linkingBusiness}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => selectedBusinessId && linkToBusiness(selectedBusinessId)}
-                disabled={!selectedBusinessId || loadingBusinesses || linkingBusiness}
-                className="btn btn-primary"
-              >
-                {linkingBusiness ? (
-                  <><Loader2 size={16} className="spinner" /> Sending Request...</>
-                ) : (
-                  <><Send size={16} /> Send Request</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

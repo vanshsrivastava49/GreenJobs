@@ -90,6 +90,14 @@ const userSchema = new mongoose.Schema(
         ref: "User",
         default: null,
       },
+      verificationStatus: {
+  type: String,
+  enum: ["pending", "approved", "rejected"],
+  default: undefined,
+},
+verificationRequestedAt: { type: Date },
+verificationReviewedAt:  { type: Date },
+rejectionReason:         { type: String, default: "" },
     },
 
     // ================= BUSINESS =================
@@ -136,7 +144,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ role: 1 });
 userSchema.index({ "businessProfile.status": 1 });
 userSchema.index({ "recruiterProfile.linkedBusiness": 1 });
-
+userSchema.index({ "recruiterProfile.verificationStatus": 1 });
 //////////////////////////////////////////////////////
 // PROFILE PROGRESS CALCULATION
 //////////////////////////////////////////////////////

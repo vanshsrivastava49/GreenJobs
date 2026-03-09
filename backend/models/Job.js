@@ -69,11 +69,12 @@ const jobSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
-  business: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
-  },
+  business: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User',
+  required: false,   // ← verified recruiters have no business
+  default: null,
+},
 
   // ── Lifecycle ────────────────────────────
   status: { 
