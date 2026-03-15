@@ -1,190 +1,752 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
+import { Search, MapPin, Briefcase, MapPinIcon, DollarSign, Clock } from "lucide-react";
 
 export default function GreenJobsHomepage() {
   const navigate = useNavigate();
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchLocation, setSearchLocation] = useState("");
 
-  const testimonials = [
+  const handleSearch = () => {
+    navigate(`/jobs?search=${searchKeyword}&location=${searchLocation}`);
+  };
+
+  // Job categories for the carousel
+  const jobCategories = [
+    { name: "IT", count: 245, icon: "💻" },
+    { name: "Sales", count: 189, icon: "📊" },
+    { name: "Operations", count: 156, icon: "⚙️" },
+    { name: "Marketing", count: 203, icon: "📢" },
+  ];
+
+  // Top companies with logos
+  const topCompanies = [
+    { name: "Gronsol", logo: "/companies/gronsol.jpeg" },
+    { name: "Kalpa Power", logo: "/companies/kalpa-power.jpeg" },
+    { name: "Selec", logo: "/companies/selec.jpeg" },
+    { name: "Feston", logo: "/companies/feston.jpeg" },
+    { name: "SuryaLogix", logo: "/companies/suryalogix.jpeg" },
+    { name: "Nova SYS", logo: "/companies/novasys.jpeg" },
+  ];
+
+  // Featured jobs
+  const featuredJobs = [
     {
-      name: "Jennifer Paul",
-      text: "GreenJobs made my transition into purpose-driven work much easier. The platform feels focused, calm, and very easy to use.",
+      title: "Solar Project Manager",
+      company: "Tata Power Solar",
+      location: "Mumbai, Maharashtra",
+      experience: "5-8 years",
+      salary: "₹12-18 LPA",
+      type: "Full-time",
+      postedDays: 2
     },
     {
-      name: "Kavya Patel",
-      text: "Uploading my details and exploring opportunities felt smooth. The process is simple and the interface is very clean.",
+      title: "Wind Turbine Technician",
+      company: "Suzlon Energy",
+      location: "Pune, Maharashtra",
+      experience: "2-4 years",
+      salary: "₹6-9 LPA",
+      type: "Full-time",
+      postedDays: 1
     },
     {
-      name: "Deepak Verma",
-      text: "A great platform for discovering meaningful roles. It feels more mission-led than a typical job portal.",
+      title: "EV Charging Infrastructure Lead",
+      company: "Tata Power",
+      location: "Bangalore, Karnataka",
+      experience: "4-7 years",
+      salary: "₹10-15 LPA",
+      type: "Full-time",
+      postedDays: 3
+    },
+    {
+      title: "Solar Sales Executive",
+      company: "Adani Green Energy",
+      location: "Delhi NCR",
+      experience: "3-5 years",
+      salary: "₹8-12 LPA",
+      type: "Full-time",
+      postedDays: 4
     },
   ];
 
-  const sectionPad = { paddingLeft: "64px", paddingRight: "64px" };
-  const innerWrap = { maxWidth: "1400px", margin: "0 auto" };
-
   return (
-    <div style={{ minHeight: "100vh", width: "100%", backgroundColor: "#edf3f4", color: "#2f4630" }}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-      {/* ── Shared Navbar (shows Login + Sign Up when logged out) ── */}
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          background: #f8fafc;
+        }
+
+        /* Main Wrapper */
+        .homepage-wrapper {
+          min-height: 100vh;
+          background: #f8fafc;
+        }
+
+        /* Hero Section - "Get the Right Green Jobs" */
+        .hero-section {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          padding: 100px 40px 80px;
+          text-align: center;
+        }
+
+        .hero-title {
+          font-size: 48px;
+          font-weight: 800;
+          color: white;
+          margin-bottom: 16px;
+        }
+
+        .hero-subtitle {
+          font-size: 18px;
+          color: #94a3b8;
+          margin-bottom: 48px;
+        }
+
+        .hero-image {
+          max-width: 600px;
+          margin: 0 auto 40px;
+        }
+
+        .hero-image img {
+          width: 100%;
+          height: auto;
+          border-radius: 12px;
+        }
+
+        /* Search Box */
+        .search-container {
+          max-width: 900px;
+          margin: 0 auto;
+        }
+
+        .search-box {
+          display: flex;
+          align-items: center;
+          background: white;
+          border-radius: 50px;
+          padding: 8px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+          gap: 8px;
+        }
+
+        .search-input-wrapper {
+          flex: 1;
+          position: relative;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 16px 16px 16px 48px;
+          font-size: 15px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 25px;
+          outline: none;
+        }
+
+        .search-input:focus {
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .search-btn {
+          padding: 16px 48px;
+          font-size: 15px;
+          font-weight: 600;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .search-btn:hover {
+          background: #059669;
+        }
+
+        /* Job Categories Carousel */
+        .categories-carousel {
+          background: white;
+          padding: 60px 40px;
+          overflow: hidden;
+        }
+
+        .categories-title {
+          text-align: center;
+          font-size: 32px;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 40px;
+        }
+
+        .categories-scroll {
+          display: flex;
+          gap: 24px;
+          overflow-x: auto;
+          scroll-behavior: smooth;
+          padding: 8px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .categories-scroll::-webkit-scrollbar {
+          height: 8px;
+        }
+
+        .categories-scroll::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+
+        .categories-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+
+        .category-card {
+          min-width: 200px;
+          background: #f8fafc;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 32px 24px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .category-card:hover {
+          border-color: #10b981;
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+        }
+
+        .category-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
+
+        .category-name {
+          font-size: 18px;
+          font-weight: 600;
+          color: #0f172a;
+          margin-bottom: 8px;
+        }
+
+        .category-count {
+          font-size: 14px;
+          color: #64748b;
+        }
+
+        .scroll-arrows {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-top: 24px;
+        }
+
+        .scroll-arrow {
+          width: 40px;
+          height: 40px;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          font-size: 20px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .scroll-arrow:hover {
+          background: #059669;
+        }
+
+        /* Top Companies Section */
+        .companies-section {
+          background: #f8fafc;
+          padding: 60px 40px;
+        }
+
+        .companies-title {
+          text-align: center;
+          font-size: 32px;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 40px;
+        }
+
+        .companies-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 24px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .company-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 140px;
+          transition: all 0.2s;
+          cursor: pointer;
+        }
+
+        .company-card:hover {
+          border-color: #10b981;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+          transform: translateY(-2px);
+        }
+
+        .company-logo {
+          max-width: 100%;
+          max-height: 70px;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+        }
+
+        /* Banner Ad Section */
+        .banner-ad-section {
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          padding: 48px 40px;
+          text-align: center;
+          margin: 40px 0;
+        }
+
+        .ad-content {
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+
+        .ad-title {
+          font-size: 28px;
+          font-weight: 700;
+          color: #92400e;
+          margin-bottom: 12px;
+        }
+
+        .ad-text {
+          font-size: 16px;
+          color: #78350f;
+        }
+
+        .scroll-arrows-container {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        /* Show All Jobs Section */
+        .jobs-section {
+          padding: 60px 40px;
+          background: white;
+        }
+
+        .jobs-header {
+          text-align: center;
+          margin-bottom: 48px;
+        }
+
+        .jobs-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 8px;
+        }
+
+        .jobs-subtitle {
+          font-size: 16px;
+          color: #64748b;
+        }
+
+        .jobs-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 24px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .job-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 24px;
+          transition: all 0.2s;
+          cursor: pointer;
+        }
+
+        .job-card:hover {
+          border-color: #10b981;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+          transform: translateY(-2px);
+        }
+
+        .job-header {
+          margin-bottom: 16px;
+        }
+
+        .job-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 8px;
+        }
+
+        .job-company {
+          font-size: 14px;
+          color: #64748b;
+          margin-bottom: 4px;
+        }
+
+        .job-type {
+          display: inline-block;
+          padding: 4px 12px;
+          background: #dcfce7;
+          color: #065f46;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .job-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin: 16px 0;
+          font-size: 14px;
+          color: #64748b;
+        }
+
+        .job-meta-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .job-salary {
+          font-size: 16px;
+          font-weight: 700;
+          color: #10b981;
+          margin-top: 12px;
+        }
+
+        .job-posted {
+          font-size: 12px;
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-top: 8px;
+        }
+
+        /* Footer */
+        .footer {
+          background: linear-gradient(to bottom, #1e293b, #0f172a);
+          padding: 60px 40px 32px;
+          color: white;
+        }
+
+        .footer-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 40px;
+          max-width: 1200px;
+          margin: 0 auto 40px;
+        }
+
+        .footer-brand {
+          font-size: 24px;
+          font-weight: 700;
+          color: #10b981;
+          margin-bottom: 12px;
+        }
+
+        .footer-desc {
+          font-size: 14px;
+          color: #94a3b8;
+          line-height: 1.6;
+        }
+
+        .footer-title {
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 16px;
+          color: white;
+        }
+
+        .footer-links {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .footer-link {
+          font-size: 14px;
+          color: #94a3b8;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+
+        .footer-link:hover {
+          color: #10b981;
+        }
+
+        .footer-bottom {
+          text-align: center;
+          padding-top: 32px;
+          border-top: 1px solid #334155;
+          color: #64748b;
+          font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+          .hero-title {
+            font-size: 32px;
+          }
+
+          .search-box {
+            flex-direction: column;
+          }
+
+          .search-btn {
+            width: 100%;
+          }
+
+          .jobs-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      {/* Navbar */}
       <Navbar />
 
-      <main style={{ width: "100%" }}>
+      <div className="homepage-wrapper">
+        {/* 1. Hero Section - "Get the Right Green Jobs" */}
+        <section className="hero-section">
+          <h1 className="hero-title">Get the Right Green Jobs</h1>
+          <p className="hero-subtitle">
+            Depicting Renewable Energy & Jobs
+          </p>
 
-        {/* ── Hero / Search ── */}
-        <section style={{ ...sectionPad, paddingTop: "80px", paddingBottom: "64px", textAlign: "center" }}>
-          <div style={innerWrap}>
-            <p style={{ fontSize: "14px", color: "#5b8f5a" }}>Realize your career dreams</p>
-            <h2 style={{ marginTop: "8px", fontSize: "5rem", lineHeight: 1.1, color: "#415b41", fontFamily: "Georgia, Times New Roman, serif" }}>
-              Discover your jobs here
-            </h2>
-            <div style={{ margin: "40px auto 0", width: "100%", maxWidth: "980px", display: "flex", flexDirection: "row", alignItems: "center", background: "white", border: "1px solid #cfcfcf", borderRadius: "9999px", padding: "12px 12px 12px 24px", boxShadow: "0 10px 24px rgba(0,0,0,0.08)" }}>
-              <input type="text" placeholder="Search jobs, keyword or company" style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: "15px", color: "#444", padding: "8px 0", minWidth: 0 }} />
-              <div style={{ width: "1px", height: "32px", background: "#d5d5d5", margin: "0 16px", flexShrink: 0 }} />
-              <input type="text" placeholder="City or pincode" style={{ width: "220px", border: "none", outline: "none", background: "transparent", fontSize: "15px", color: "#444", padding: "8px 0", flexShrink: 0 }} />
-              <button onClick={() => navigate("/jobs")} style={{ background: "#6c6c6c", border: "none", borderRadius: "9999px", padding: "12px 32px", fontSize: "15px", fontWeight: "500", color: "white", cursor: "pointer", flexShrink: 0, marginLeft: "8px" }}>
-                Search
+          {/* Guy Picture Placeholder */}
+          <div className="hero-image">
+            <img 
+              src="/hero-green-jobs.jpg" 
+              alt="Green Energy Professional" 
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          </div>
+
+          {/* Search: Enter Skill / Exp / Location */}
+          <div className="search-container">
+            <div className="search-box">
+              <div className="search-input-wrapper">
+                <Search className="search-icon" size={20} color="#64748b" />
+                <input
+                  type="text"
+                  placeholder="Enter skill, experience or job title..."
+                  className="search-input"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <div className="search-input-wrapper" style={{ flex: '0.6' }}>
+                <MapPin className="search-icon" size={20} color="#64748b" />
+                <input
+                  type="text"
+                  placeholder="Location..."
+                  className="search-input"
+                  value={searchLocation}
+                  onChange={(e) => setSearchLocation(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <button className="search-btn" onClick={handleSearch}>
+                Search Jobs
               </button>
             </div>
           </div>
         </section>
 
-        {/* ── Tagline ── */}
-        <section style={{ ...sectionPad, paddingTop: "80px", paddingBottom: "56px", textAlign: "center" }}>
-          <div style={innerWrap}>
-            <p style={{ fontSize: "14px", color: "#5b8f5a" }}>Your Career. Your Move. Your Future.</p>
-            <h3 style={{ margin: "8px auto 0", maxWidth: "1000px", fontSize: "3.5rem", lineHeight: 1.2, color: "#415441", fontFamily: "Georgia, Times New Roman, serif" }}>
-              Your Career. Your Move. Your Future.
-            </h3>
-            <p style={{ margin: "16px auto 0", maxWidth: "900px", fontSize: "16px", lineHeight: 1.8, color: "#4f5961" }}>
-              Upload your portfolio, explore opportunities, and get hired faster. One job post on GreenJobs reaches 500+ skilled professionals.
+        {/* 2. Job Categories Carousel - IT, Sales, Operations, Marketing */}
+        <section className="categories-carousel">
+          <h2 className="categories-title">Browse Jobs by Category</h2>
+          <div className="categories-scroll" id="categoriesScroll">
+            {jobCategories.map((category, index) => (
+              <div
+                key={index}
+                className="category-card"
+                onClick={() => navigate(`/jobs?category=${category.name}`)}
+              >
+                <div className="category-icon">{category.icon}</div>
+                <div className="category-name">{category.name}</div>
+                <div className="category-count">{category.count} jobs</div>
+              </div>
+            ))}
+          </div>
+          <div className="scroll-arrows">
+            <button 
+              className="scroll-arrow"
+              onClick={() => {
+                document.getElementById('categoriesScroll').scrollBy({ left: -220, behavior: 'smooth' });
+              }}
+            >
+              ◀
+            </button>
+            <button 
+              className="scroll-arrow"
+              onClick={() => {
+                document.getElementById('categoriesScroll').scrollBy({ left: 220, behavior: 'smooth' });
+              }}
+            >
+              ▶
+            </button>
+          </div>
+        </section>
+
+        {/* 3. Top Companies Hiring Now */}
+        <section className="companies-section">
+          <h2 className="companies-title">Top Companies Hiring Now</h2>
+          <div className="companies-grid">
+            {topCompanies.map((company, index) => (
+              <div
+                key={index}
+                className="company-card"
+                onClick={() => navigate(`/jobs?company=${company.name}`)}
+              >
+                <img
+                  src={company.logo}
+                  alt={company.name}
+                  className="company-logo"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `<div style="font-size: 18px; font-weight: 600; color: #374151;">${company.name}</div>`;
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 4. Banner Ads Section */}
+        <section className="banner-ad-section">
+          <div className="ad-content">
+            <h2 className="ad-title">🌟 Featured Green Energy Opportunities</h2>
+            <p className="ad-text">
+              Join India's leading renewable energy companies - Post your jobs or apply today!
             </p>
           </div>
-        </section>
-
-        {/* ── Mission Banner ── */}
-        <section style={{ ...sectionPad, paddingBottom: "56px" }}>
-          <div style={{ ...innerWrap, position: "relative", display: "flex", minHeight: "260px", overflow: "hidden", borderRadius: "6px", background: "linear-gradient(to right, #f3f6e9, #f3f3df, #dfe9f5)" }}>
-            <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "8px", background: "#ffb000" }} />
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 280px 40px 64px", width: "100%" }}>
-              <div style={{ fontSize: "3rem", fontWeight: "800", textTransform: "uppercase", lineHeight: 1, color: "#171717" }}>MORE THAN JOBS.</div>
-              <div style={{ marginTop: "8px", fontSize: "3rem", fontWeight: "800", textTransform: "uppercase", lineHeight: 1, color: "#74b437" }}>IT'S A MISSION.</div>
-              <p style={{ marginTop: "16px", maxWidth: "420px", fontSize: "15px", lineHeight: 1.6, color: "#555" }}>
-                Explore careers for passionate individuals with causes that matter and work that creates real impact.
-              </p>
-            </div>
-            <div style={{ position: "absolute", right: "80px", top: 0, height: "100%", width: "32px", transform: "skewX(-24deg)", background: "#8ac43b" }} />
-            <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: "320px", display: "flex", alignItems: "center", gap: "16px", padding: "0 24px" }}>
-              <div style={{ height: "120px", width: "76px", background: "#c7d7e2" }} />
-              <div style={{ height: "150px", width: "100px", background: "#9fb8c9" }} />
-              <div style={{ height: "120px", width: "72px", background: "#5b6d86" }} />
-            </div>
+          <div className="scroll-arrows-container">
+            <span style={{ fontSize: '24px' }}>◀</span>
+            <span style={{ fontSize: '24px' }}>▶</span>
           </div>
         </section>
 
-        {/* ── Process Steps ── */}
-        <section style={{ ...sectionPad, paddingTop: "32px", textAlign: "center" }}>
-          <div style={innerWrap}>
-            <p style={{ fontSize: "14px", color: "#5b8f5a" }}>Simple Process</p>
-            <h3 style={{ marginTop: "8px", fontSize: "3.5rem", lineHeight: 1.2, color: "#415441", fontFamily: "Georgia, Times New Roman, serif" }}>
-              Effortless Process<br />Optimal Results
-            </h3>
+        {/* 5. Show All Jobs Listed Right Now */}
+        <section className="jobs-section">
+          <div className="jobs-header">
+            <h2 className="jobs-title">Show All Jobs Listed Right Now</h2>
+            <p className="jobs-subtitle">Explore the latest opportunities in renewable energy</p>
           </div>
-        </section>
-
-        <section style={{ ...sectionPad, paddingTop: "40px", paddingBottom: "80px" }}>
-          <div style={{ ...innerWrap, background: "#d7f7d6", padding: "56px 48px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "40px" }}>
-              {[
-                { label: "Complete your\nprofile", img: "img 1" },
-                { label: "Portfolio\nUpload", img: "img 2" },
-                { label: "Scheduling\nInterview", img: "img 3" },
-              ].map((step, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "24px" }}>
-                  <div style={{ height: "150px", width: "150px", background: "#c8c8c8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", color: "#333", flexShrink: 0 }}>
-                    {step.img}
-                  </div>
-                  <div style={{ fontSize: "17px", lineHeight: 1.4, color: "#3b573b", whiteSpace: "pre-line" }}>{step.label}</div>
-                  {i < 2 && <div style={{ fontSize: "22px", color: "#3b573b" }}>→</div>}
+          <div className="jobs-grid">
+            {featuredJobs.map((job, index) => (
+              <div
+                key={index}
+                className="job-card"
+                onClick={() => navigate('/jobs')}
+              >
+                <div className="job-header">
+                  <h3 className="job-title">{job.title}</h3>
+                  <p className="job-company">{job.company}</p>
+                  <span className="job-type">{job.type}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Testimonials ── */}
-        <section style={{ ...sectionPad, paddingBottom: "64px", textAlign: "center" }}>
-          <div style={innerWrap}>
-            <p style={{ fontSize: "14px", color: "#5b8f5a" }}>Success Experience</p>
-            <h3 style={{ marginTop: "8px", fontSize: "3rem", lineHeight: 1.2, color: "#415441", fontFamily: "Georgia, Times New Roman, serif" }}>
-              Insights from GreenJobs users
-            </h3>
-            <div style={{ margin: "40px auto 0", maxWidth: "1220px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px" }}>
-              {testimonials.map((item) => (
-                <div key={item.name} style={{ background: "#fff3f2", padding: "28px", textAlign: "left", boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}>
-                  <div style={{ fontSize: "24px", color: "#f08148" }}>❝</div>
-                  <p style={{ marginTop: "12px", minHeight: "150px", fontSize: "15px", lineHeight: 1.7, color: "#555" }}>{item.text}</p>
-                  <div style={{ marginTop: "16px", fontSize: "15px", color: "#f39b41" }}>★★★★★</div>
-                  <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ height: "40px", width: "40px", borderRadius: "9999px", background: "#d8c3a5", flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: "14px", fontWeight: "600", color: "#444" }}>{item.name}</div>
-                      <div style={{ fontSize: "12px", color: "#777" }}>GreenJobs User</div>
-                    </div>
+                
+                <div className="job-meta">
+                  <div className="job-meta-item">
+                    <MapPinIcon size={16} />
+                    {job.location}
+                  </div>
+                  <div className="job-meta-item">
+                    <Briefcase size={16} />
+                    {job.experience}
                   </div>
                 </div>
-              ))}
-            </div>
-            <div style={{ marginTop: "20px", fontSize: "20px", letterSpacing: "6px", color: "#4a4a4a" }}>...</div>
+
+                <div className="job-salary">{job.salary}</div>
+                
+                <div className="job-posted">
+                  <Clock size={12} />
+                  Posted {job.postedDays} days ago
+                </div>
+              </div>
+            ))}
           </div>
         </section>
+      </div>
 
-      </main>
-
-      {/* ── Footer ── */}
-      <footer style={{ width: "100%", background: "linear-gradient(to bottom, #4c4c4c, #242424)", padding: "48px 64px", color: "white" }}>
-        <div style={{ ...innerWrap, display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "24px" }}>
+      {/* 6. Footer */}
+      <footer className="footer">
+        <div className="footer-grid">
           <div>
-            <div style={{ fontSize: "18px", fontWeight: "700", color: "#4acc73" }}>Green Jobs</div>
-            <p style={{ marginTop: "12px", fontSize: "13px", lineHeight: 1.7, color: "#d6d6d6" }}>Emerging workforce hub for impactful opportunities and sustainable careers.</p>
+            <div className="footer-brand">GreenJobs</div>
+            <p className="footer-desc">
+              Your gateway to renewable energy careers. Connecting talent with purpose-driven opportunities.
+            </p>
           </div>
           <div>
-            <div style={{ fontSize: "14px", fontWeight: "600" }}>Quick Links</div>
-            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", color: "#d6d6d6" }}>
-              <span style={{ cursor: "pointer" }} onClick={() => navigate("/")}>Home</span>
-              <span>About Us</span>
-              <span>Blogs</span>
-              <span>Contact Us</span>
+            <div className="footer-title">Quick Links</div>
+            <div className="footer-links">
+              <span className="footer-link" onClick={() => navigate("/")}>Home</span>
+              <span className="footer-link">About Us</span>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: "14px", fontWeight: "600" }}>For Recruiters</div>
-            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", color: "#d6d6d6" }}>
-              <span style={{ cursor: "pointer" }} onClick={() => navigate("/login")}>Sign in</span>
-              <span style={{ cursor: "pointer" }} onClick={() => navigate("/signup")}>Sign up</span>
-              <span style={{ cursor: "pointer" }} onClick={() => navigate("/post-job")}>Post Jobs</span>
-              <span>Feedback</span>
+            <div className="footer-title">For Recruiters</div>
+            <div className="footer-links">
+              <span className="footer-link" onClick={() => navigate("/login")}>Sign In</span>
+              <span className="footer-link" onClick={() => navigate("/signup")}>Sign Up</span>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: "14px", fontWeight: "600" }}>For Job Seekers</div>
-            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", color: "#d6d6d6" }}>
-              <span style={{ cursor: "pointer" }} onClick={() => navigate("/jobs")}>Explore jobs</span>
-              <span>Resources</span>
-              <span>Tips &amp; Blogs</span>
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "14px", fontWeight: "600" }}>Contact</div>
-            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "#d6d6d6" }}>
-              <span>123 XYZ ROAD, NEW DELHI</span>
-              <span>contact@greenjobs.in</span>
-              <span>Mon–Sat 9 AM to 6 PM</span>
+            <div className="footer-title">Contact</div>
+            <div className="footer-links">
+              <span className="footer-link">Address: Delhi</span>
+              <span className="footer-link">Phone No.</span>
             </div>
           </div>
         </div>
+        <div className="footer-bottom">
+          © 2026 GreenJobs. All rights reserved.
+        </div>
       </footer>
-
-    </div>
+    </>
   );
 }
