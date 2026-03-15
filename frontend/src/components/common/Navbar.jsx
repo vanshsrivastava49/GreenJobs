@@ -1,7 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { LogOut } from "lucide-react";
 
 const Navbar = ({ title }) => {
   const { isAuthenticated, logout, user } = useAuth();
@@ -15,7 +14,6 @@ const Navbar = ({ title }) => {
   return (
     <>
       <style>{`
-        /* Fixed positioning - always sticks to top */
         .navbar-fixed {
           position: fixed;
           top: 0;
@@ -27,9 +25,8 @@ const Navbar = ({ title }) => {
           box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        /* Add padding to body to prevent content from hiding under navbar */
         body {
-          padding-top: 75px;
+          padding-top: 82px;
         }
 
         .navbar-container {
@@ -39,7 +36,7 @@ const Navbar = ({ title }) => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          height: 75px;
+          height: 82px;
           position: relative;
         }
 
@@ -51,28 +48,41 @@ const Navbar = ({ title }) => {
 
         .navbar-logo {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 12px;
+          justify-content: center;
           text-decoration: none;
           cursor: pointer;
+          min-width: 120px;
         }
 
         .logo-image {
-          height: 55px;
+          height: 52px;
           width: auto;
+          object-fit: contain;
         }
 
         .logo-text {
           display: flex;
           flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          margin-top: 2px;
         }
 
         .logo-brand {
-          font-size: 22px;
-          font-weight: 700;
-          color: #10b981;
-          line-height: 1;
-        }
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.logo-green {
+  color: #16a34a; /* green */
+}
+
+.logo-black {
+  color: #111827; /* dark text */
+}
 
         .navbar-center {
           position: absolute;
@@ -83,7 +93,7 @@ const Navbar = ({ title }) => {
         }
 
         .worker-image {
-          height: 65px;
+          height: 80px;
           width: auto;
           object-fit: contain;
         }
@@ -91,12 +101,12 @@ const Navbar = ({ title }) => {
         .navbar-right {
           display: flex;
           align-items: center;
-          gap: 32px;
+          gap: 24px;
         }
 
         .nav-links {
           display: flex;
-          gap: 32px;
+          gap: 28px;
           align-items: center;
         }
 
@@ -116,7 +126,7 @@ const Navbar = ({ title }) => {
         .user-section {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 14px;
         }
 
         .user-info {
@@ -204,7 +214,7 @@ const Navbar = ({ title }) => {
         }
 
         .banner-ad-image {
-          height: 70px;
+          height: 62px;
           width: auto;
           object-fit: contain;
         }
@@ -220,30 +230,38 @@ const Navbar = ({ title }) => {
           }
 
           .nav-links {
-            gap: 20px;
+            gap: 18px;
           }
 
           .navbar-right {
-            gap: 20px;
+            gap: 16px;
+          }
+
+          .banner-ad-image {
+            display: none;
           }
         }
 
         @media (max-width: 768px) {
           body {
-            padding-top: 65px;
+            padding-top: 72px;
           }
 
           .navbar-container {
             padding: 0 16px;
-            height: 65px;
+            height: 72px;
           }
 
           .logo-image {
-            height: 45px;
+            height: 44px;
+          }
+
+          .logo-brand {
+            font-size: 12px;
           }
 
           .worker-image {
-            height: 50px;
+            height: 46px;
           }
 
           .navbar-center {
@@ -254,48 +272,49 @@ const Navbar = ({ title }) => {
             display: none;
           }
 
-          .user-name {
+          .user-name,
+          .user-role {
             display: none;
           }
 
-          .user-role {
-            display: none;
+          .user-info {
+            padding: 6px;
           }
         }
       `}</style>
 
       <nav className="navbar-fixed">
         <div className="navbar-container">
-          {/* Left Section - Logo */}
           <div className="navbar-left">
             <Link to="/" className="navbar-logo">
-              <img 
-                src="/solar-is-my-passion-logo.jpeg" 
-                alt="Solar is my passion" 
+              <img
+                src="/solar-is-my-passion-logo.jpeg"
+                alt="Solar is my passion"
                 className="logo-image"
                 onError={(e) => {
-                  e.target.style.display = 'none';
+                  e.target.style.display = "none";
                 }}
               />
               <div className="logo-text">
-                <div className="logo-brand">GreenJobs</div>
+                <div className="logo-brand">
+  <span className="logo-green">Green</span>
+  <span className="logo-black">Jobs</span>
+</div>
               </div>
             </Link>
           </div>
 
-          {/* Center Section - Worker Image */}
           <div className="navbar-center">
-            <img 
-              src="/worker-navbar.jpeg" 
-              alt="Worker" 
+            <img
+              src="/worker-navbar.jpeg"
+              alt="Worker"
               className="worker-image"
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.target.style.display = "none";
               }}
             />
           </div>
 
-          {/* Right Section - Navigation */}
           <div className="navbar-right">
             {isAuthenticated ? (
               <>
@@ -307,7 +326,7 @@ const Navbar = ({ title }) => {
                     Dashboard
                   </Link>
                 </div>
-                
+
                 <div className="user-section">
                   <div className="user-info">
                     <div className="user-avatar">
@@ -320,18 +339,18 @@ const Navbar = ({ title }) => {
                       <span className="user-role">Job Seeker</span>
                     </div>
                   </div>
-                  
+
                   <button onClick={handleLogout} className="nav-btn btn-logout">
                     Logout
                   </button>
                 </div>
 
-                <img 
-                  src="/banner-ad-right.jpeg" 
-                  alt="Banner" 
+                <img
+                  src="/banner-ad-right.jpeg"
+                  alt="Banner"
                   className="banner-ad-image"
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.style.display = "none";
                   }}
                 />
               </>
@@ -345,21 +364,27 @@ const Navbar = ({ title }) => {
                     Companies
                   </Link>
                 </div>
-                
-                <button onClick={() => navigate("/login")} className="nav-btn btn-login">
+
+                <button
+                  onClick={() => navigate("/login")}
+                  className="nav-btn btn-login"
+                >
                   Login
                 </button>
-                
-                <button onClick={() => navigate("/signup")} className="nav-btn btn-signup">
+
+                <button
+                  onClick={() => navigate("/signup")}
+                  className="nav-btn btn-signup"
+                >
                   Sign Up
                 </button>
 
-                <img 
-                  src="/banner-ad-right.jpeg" 
-                  alt="Banner" 
+                <img
+                  src="/banner-ad-right.jpeg"
+                  alt="Banner"
                   className="banner-ad-image"
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.style.display = "none";
                   }}
                 />
               </>

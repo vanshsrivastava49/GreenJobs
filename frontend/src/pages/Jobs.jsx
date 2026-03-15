@@ -518,7 +518,7 @@ const Jobs = () => {
                         className={`pay-chip ${selectedPay === p ? "active" : ""}`}
                         onClick={() => setSelectedPay(p)}
                       >
-                        {p === "Paid" ? "💰 " : p === "Unpaid" ? "🤝 " : ""}
+                        {p === "Paid" ? "" : p === "Unpaid" ? "" : ""}
                         {p}
                       </button>
                     ))}
