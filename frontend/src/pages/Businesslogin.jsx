@@ -73,13 +73,13 @@ const BusinessLogin = () => {
           min-height: calc(100vh - 82px);
           display: flex;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          background: #fffbeb;
+          background: #f0fdf4;
         }
 
         .biz-left {
           flex: 1; min-width: 0;
           display: flex; align-items: center; justify-content: center;
-          padding: 48px 40px; overflow-y: auto; background: #fffbeb;
+          padding: 48px 40px; overflow-y: auto; background: #f0fdf4;
         }
 
         .biz-form-box {
@@ -89,38 +89,29 @@ const BusinessLogin = () => {
         @keyframes bizUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
         .biz-wordmark {
-          font-size: 20px; font-weight: 800; color: #1c1917;
+          font-size: 20px; font-weight: 800; color: #052e16;
           margin-bottom: 32px; display: flex; align-items: center; gap: 10px;
           letter-spacing: -0.4px;
         }
-        .biz-wordmark-dot { width: 8px; height: 8px; border-radius: 50%; background: #d97706; margin-top: 2px; flex-shrink: 0; }
+        .biz-wordmark-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; margin-top: 2px; flex-shrink: 0; }
 
-        .biz-role-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 28px; }
-        .biz-chip {
-          padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 700;
-          border: 1px solid #e5e7eb; background: white; color: #9ca3af;
-          text-decoration: none; transition: all 0.15s; letter-spacing: 0.05em; text-transform: uppercase;
-        }
-        .biz-chip:hover { border-color: #d97706; color: #b45309; }
-        .biz-chip.active { border-color: #d97706; color: #92400e; background: #fffbeb; }
+        .biz-heading { font-size: 28px; font-weight: 800; color: #052e16; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .biz-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.6; }
+        .biz-sub strong { color: #052e16; font-weight: 700; }
 
-        .biz-heading { font-size: 28px; font-weight: 800; color: #1c1917; margin-bottom: 6px; letter-spacing: -0.5px; }
-        .biz-sub { font-size: 14px; color: #78716c; margin-bottom: 28px; line-height: 1.6; }
-        .biz-sub strong { color: #92400e; font-weight: 700; }
-
-        .biz-label { font-size: 12px; font-weight: 700; color: #57534e; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .biz-label { font-size: 12px; font-weight: 700; color: #374151; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; display: block; }
 
         .biz-input-wrap { position: relative; margin-bottom: 18px; }
-        .biz-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a8a29e; }
+        .biz-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
         .biz-input {
           width: 100%; padding: 13px 16px 13px 44px;
-          background: white; border: 1.5px solid #e7e5e4; border-radius: 10px;
+          background: white; border: 1.5px solid #d1fae5; border-radius: 10px;
           font-size: 14px; font-family: 'Inter', sans-serif;
-          color: #1c1917; outline: none; transition: all 0.2s; box-sizing: border-box;
+          color: #052e16; outline: none; transition: all 0.2s; box-sizing: border-box;
         }
-        .biz-input:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); }
-        .biz-input:disabled { opacity: 0.6; background: #fafaf8; }
-        .biz-input::placeholder { color: #a8a29e; }
+        .biz-input:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
+        .biz-input:disabled { opacity: 0.6; background: #f0fdf4; }
+        .biz-input::placeholder { color: #9ca3af; }
 
         .biz-otp-row {
           display: grid; grid-template-columns: repeat(6, 1fr);
@@ -128,62 +119,70 @@ const BusinessLogin = () => {
         }
         .biz-otp-box {
           width: 100%; aspect-ratio: 1/1; max-height: 60px;
-          background: white; border: 1.5px solid #e7e5e4; border-radius: 10px;
+          background: white; border: 1.5px solid #d1fae5; border-radius: 10px;
           font-size: 22px; font-weight: 800; font-family: 'Inter', sans-serif;
-          color: #1c1917; text-align: center; outline: none;
+          color: #052e16; text-align: center; outline: none;
           transition: all 0.18s; padding: 0; box-sizing: border-box;
         }
-        .biz-otp-box:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); background: #fffbeb; }
-        .biz-otp-box:not(:placeholder-shown) { background: #fffbeb; }
+        .biz-otp-box:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); background: #f0fdf4; }
+        .biz-otp-box:not(:placeholder-shown) { background: #f0fdf4; }
 
-        .biz-otp-hint { font-size: 12px; color: #a8a29e; text-align: center; margin-bottom: 20px; }
-        .biz-otp-hint button { background: none; border: none; color: #d97706; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; padding: 0; }
+        .biz-otp-hint { font-size: 12px; color: #9ca3af; text-align: center; margin-bottom: 20px; }
+        .biz-otp-hint button { background: none; border: none; color: #16a34a; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; padding: 0; }
         .biz-otp-hint button:hover { text-decoration: underline; }
 
         .biz-captcha { display: flex; justify-content: center; margin-bottom: 18px; }
 
         .biz-btn {
           width: 100%; padding: 14px;
-          background: #92400e; color: white; border: none; border-radius: 10px;
+          background: #052e16; color: white; border: none; border-radius: 10px;
           font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
           cursor: pointer; transition: all 0.2s;
           display: flex; align-items: center; justify-content: center; gap: 8px;
           box-sizing: border-box; letter-spacing: 0.1px;
         }
-        .biz-btn:hover:not(:disabled) { background: #78350f; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(146,64,14,0.25); }
+        .biz-btn:hover:not(:disabled) { background: #14532d; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(5,46,22,0.25); }
         .biz-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
         .biz-divider { text-align: center; position: relative; margin: 20px 0; }
-        .biz-divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #e7e5e4; }
-        .biz-divider span { background: #fffbeb; padding: 0 14px; font-size: 11px; color: #a8a29e; position: relative; letter-spacing: 0.06em; text-transform: uppercase; }
+        .biz-divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #d1fae5; }
+        .biz-divider span { background: #f0fdf4; padding: 0 14px; font-size: 11px; color: #9ca3af; position: relative; letter-spacing: 0.06em; text-transform: uppercase; }
 
-        .biz-footer { text-align: center; margin-top: 28px; font-size: 13px; color: #78716c; }
-        .biz-footer a { color: #d97706; font-weight: 700; text-decoration: none; }
+        .biz-footer { text-align: center; margin-top: 28px; font-size: 13px; color: #6b7280; }
+        .biz-footer a { color: #16a34a; font-weight: 700; text-decoration: none; }
         .biz-footer a:hover { text-decoration: underline; }
 
-        .biz-back { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #78716c; margin-bottom: 24px; padding: 0; font-family: 'Inter', sans-serif; transition: color 0.15s; font-weight: 500; }
-        .biz-back:hover { color: #1c1917; }
+        .biz-back { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6b7280; margin-bottom: 24px; padding: 0; font-family: 'Inter', sans-serif; transition: color 0.15s; font-weight: 500; }
+        .biz-back:hover { color: #052e16; }
 
         /* ── RIGHT brand panel ── */
         .biz-right {
           width: 42%; flex-shrink: 0;
-          background: #1c1917;
+          background: linear-gradient(160deg, #052e16 0%, #14532d 50%, #166534 100%);
           display: flex; flex-direction: column; justify-content: center;
           padding: 64px 56px; position: relative; overflow: hidden;
         }
-        .biz-right-pattern { position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(circle, rgba(217,119,6,0.08) 1px, transparent 1px); background-size: 32px 32px; }
-        .biz-right-glow { position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(217,119,6,0.15) 0%, transparent 70%); top: -80px; right: -80px; pointer-events: none; }
+        .biz-right-circles { position: absolute; inset: 0; pointer-events: none; }
+        .biz-right-circle { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); }
+        .biz-right-c1 { width: 500px; height: 500px; top: -180px; left: -180px; }
+        .biz-right-c2 { width: 340px; height: 340px; top: 60px; right: -120px; }
+        .biz-right-c3 { width: 200px; height: 200px; bottom: 120px; left: 40px; border-color: rgba(16,185,129,0.2); }
+        .biz-right-glow { position: absolute; inset: 0; background-image: radial-gradient(circle at 70% 20%, rgba(16,185,129,0.15) 0%, transparent 60%); pointer-events: none; }
         .biz-right-content { position: relative; z-index: 2; }
-        .biz-right-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #d97706; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .biz-right-eyebrow::after { content: ''; flex: 1; height: 1px; background: rgba(217,119,6,0.3); max-width: 60px; }
+        .biz-right-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #6ee7b7; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .biz-right-eyebrow::before { content: ''; width: 24px; height: 1px; background: #6ee7b7; }
         .biz-right-title { font-size: 38px; font-weight: 800; line-height: 1.15; color: white; margin-bottom: 24px; letter-spacing: -1px; }
-        .biz-right-title span { color: #d97706; }
-        .biz-right-desc { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.8; margin-bottom: 40px; max-width: 320px; }
+        .biz-right-title span { color: #6ee7b7; }
+        .biz-right-desc { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.8; margin-bottom: 40px; max-width: 320px; }
         .biz-features { display: flex; flex-direction: column; gap: 18px; }
         .biz-feature { display: flex; align-items: flex-start; gap: 14px; }
-        .biz-feature-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(217,119,6,0.12); border: 1px solid rgba(217,119,6,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .biz-feature-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .biz-feature-title { font-size: 13px; font-weight: 700; color: white; margin-bottom: 3px; }
-        .biz-feature-desc { font-size: 12px; color: rgba(255,255,255,0.4); }
+        .biz-feature-desc { font-size: 12px; color: rgba(255,255,255,0.45); }
+
+        .biz-stats { display: flex; gap: 32px; margin-top: 40px; }
+        .biz-stat-num { font-size: 28px; font-weight: 800; color: white; letter-spacing: -0.5px; }
+        .biz-stat-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 500; }
 
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -198,20 +197,13 @@ const BusinessLogin = () => {
         <div className="biz-left">
           <div className="biz-form-box">
             <div className="biz-wordmark">
-              <Building2 size={20} color="#d97706" />
+              <Building2 size={20} color="#16a34a" />
               GreenJobs Business
               <div className="biz-wordmark-dot" />
-            </div>
-            <div className="biz-role-row">
-              <Link to="/login" className="biz-chip">Job Seeker</Link>
-              <Link to="/recruiter/login" className="biz-chip">Recruiter</Link>
-              <span className="biz-chip active">Business</span>
-              <Link to="/admin/login" className="biz-chip">Admin</Link>
             </div>
             {step === "email" ? (
               <>
                 <h1 className="biz-heading">Business Sign In</h1>
-                <p className="biz-sub">Access your business profile and manage green energy opportunities.</p>
                 <form onSubmit={handleSendOtp}>
                   <label className="biz-label">Business Email</label>
                   <div className="biz-input-wrap">
@@ -256,21 +248,26 @@ const BusinessLogin = () => {
             <div className="biz-footer">
               New business? <Link to="/signup?role=business">Register here</Link>
               {" · "}
-              <Link to="/" style={{ color: "#a8a29e" }}>Home</Link>
+              <Link to="/" style={{ color: "#9ca3af" }}>Home</Link>
             </div>
           </div>
         </div>
 
         <div className="biz-right">
-          <div className="biz-right-pattern" /><div className="biz-right-glow" />
+          <div className="biz-right-circles">
+            <div className="biz-right-circle biz-right-c1" />
+            <div className="biz-right-circle biz-right-c2" />
+            <div className="biz-right-circle biz-right-c3" />
+          </div>
+          <div className="biz-right-glow" />
           <div className="biz-right-content">
             <div className="biz-right-eyebrow">For Business Owners</div>
             <h2 className="biz-right-title">Grow your <span>green</span> business</h2>
             <p className="biz-right-desc">List your company, post opportunities, and connect with skilled professionals in the renewable energy sector.</p>
             <div className="biz-features">
-              <div className="biz-feature"><div className="biz-feature-icon"><TrendingUp size={16} color="#d97706" /></div><div><div className="biz-feature-title">Visibility Boost</div><div className="biz-feature-desc">Get discovered by thousands of green energy professionals</div></div></div>
-              <div className="biz-feature"><div className="biz-feature-icon"><Award size={16} color="#d97706" /></div><div><div className="biz-feature-title">Verified Badge</div><div className="biz-feature-desc">Build trust with our business verification program</div></div></div>
-              <div className="biz-feature"><div className="biz-feature-icon"><Globe size={16} color="#d97706" /></div><div><div className="biz-feature-title">Pan-India Reach</div><div className="biz-feature-desc">Connect with talent from every state across India</div></div></div>
+              <div className="biz-feature"><div className="biz-feature-icon"><TrendingUp size={16} color="#6ee7b7" /></div><div><div className="biz-feature-title">Visibility Boost</div><div className="biz-feature-desc">Get discovered by thousands of green energy professionals</div></div></div>
+              <div className="biz-feature"><div className="biz-feature-icon"><Award size={16} color="#6ee7b7" /></div><div><div className="biz-feature-title">Verified Badge</div><div className="biz-feature-desc">Build trust with our business verification program</div></div></div>
+              <div className="biz-feature"><div className="biz-feature-icon"><Globe size={16} color="#6ee7b7" /></div><div><div className="biz-feature-title">Pan-India Reach</div><div className="biz-feature-desc">Connect with talent from every state across India</div></div></div>
             </div>
           </div>
         </div>

@@ -16,193 +16,133 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+const HERO_PHRASES = [
+  "Right Here.",
+  "Green Energy.",
+  "Apply Today.",
+  "Starts Now.",
+  "It's Waiting.",
+];
+
 export default function GreenJobsHomepage() {
   const navigate = useNavigate();
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
 
-  // ── Live jobs state ──
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [phraseState, setPhraseState] = useState("visible");
+
   const [featuredJobs, setFeaturedJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState(null);
   const [activeAd, setActiveAd] = useState(0);
 
-  // ── Hero stats — fetched live, same pattern as AdminDashboard ──
-  const [heroStats, setHeroStats] = useState({
-    liveJobs:   null,   // null = loading, number = loaded
-    companies:  null,
-    jobSeekers: null,
-  });
+  const [heroStats, setHeroStats] = useState({ liveJobs: null, companies: null });
 
-  const adScrollRef = useRef(null);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPhraseState("exit");
+      setTimeout(() => {
+        setPhraseIndex((i) => (i + 1) % HERO_PHRASES.length);
+        setPhraseState("enter");
+        requestAnimationFrame(() => requestAnimationFrame(() => setPhraseState("visible")));
+      }, 340);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, []);
 
-  // ────────────────────────────────────────────────────────────────
-  //  Fetch hero stats
-  //  Strategy 1: /api/admin/stats  (single request, has everything)
-  //  Strategy 2: parallel calls mirroring AdminDashboard.fetchAllData
-  // ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Try the admin stats endpoint first — no auth needed for public numbers
-        const statsRes = await axios
-          .get(`${API_BASE_URL}/api/admin/stats`, { timeout: 8000 })
-          .catch(() => null);
-
+        const statsRes = await axios.get(`${API_BASE_URL}/api/admin/stats`, { timeout: 8000 }).catch(() => null);
         if (statsRes?.data) {
           const s = statsRes.data;
-          setHeroStats({
-            liveJobs:   s.liveJobs           ?? s.totalJobs   ?? null,
-            // approvedBusinesses is the cleaner count; fall back to businesses field
-            companies:  s.approvedBusinesses ?? s.businesses  ?? null,
-            jobSeekers: s.jobseekers          ?? s.totalUsers  ?? null,
-          });
+          setHeroStats({ liveJobs: s.liveJobs ?? s.totalJobs ?? null, companies: s.approvedBusinesses ?? s.businesses ?? null });
           return;
         }
-
-        // Fallback: same three parallel calls as AdminDashboard
-        const [usersRes, liveJobsRes, approvedBizRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/admin/users`,               { timeout: 6000 }).catch(() => null),
-          axios.get(`${API_BASE_URL}/api/jobs/public`,               { timeout: 6000 }).catch(() => null),
+        const [liveJobsRes, approvedBizRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/jobs/public`, { timeout: 6000 }).catch(() => null),
           axios.get(`${API_BASE_URL}/api/profile/business/approved`, { timeout: 6000 }).catch(() => null),
         ]);
-
-        const usersData      = Array.isArray(usersRes?.data)        ? usersRes.data        : [];
-        const jobsArray      = liveJobsRes?.data?.jobs ?? (Array.isArray(liveJobsRes?.data) ? liveJobsRes.data : []);
-        const approvedBizData = Array.isArray(approvedBizRes?.data) ? approvedBizRes.data  : [];
-
-        const liveCount   = jobsArray.filter((j) => j.status === "approved").length || jobsArray.length;
-        const seekerCount = usersData.filter((u) => u.role === "jobseeker").length || usersData.length;
-
-        setHeroStats({
-          liveJobs:   liveCount   || null,
-          companies:  approvedBizData.length || null,
-          jobSeekers: seekerCount || null,
-        });
-      } catch (err) {
-        console.error("Hero stats fetch error:", err);
-        // Stats stay null — "—" shown as graceful fallback
-      }
+        const jobsArray = liveJobsRes?.data?.jobs ?? (Array.isArray(liveJobsRes?.data) ? liveJobsRes.data : []);
+        const approvedBizData = Array.isArray(approvedBizRes?.data) ? approvedBizRes.data : [];
+        setHeroStats({ liveJobs: jobsArray.filter(j => j.status === "approved").length || null, companies: approvedBizData.length || null });
+      } catch (err) { console.error(err); }
     };
-
     fetchStats();
   }, []);
 
-  // ── Fetch approved jobs ──
   useEffect(() => {
     const fetchJobs = async () => {
       try {
         setJobsLoading(true);
-        setJobsError(null);
-
-        const response = await axios.get(
-          `${API_BASE_URL}/api/jobs/public?page=1&limit=8`,
-          { timeout: 10000 }
-        );
-
-        let jobs = [];
-        if (response.data.jobs && Array.isArray(response.data.jobs)) {
-          jobs = response.data.jobs;
-        } else if (Array.isArray(response.data)) {
-          jobs = response.data;
-        }
-
-        const approved = jobs.filter(
-          (job) => job && job._id && job.title && job.status === "approved"
-        );
-        setFeaturedJobs(approved);
-      } catch (err) {
-        console.error("Homepage jobs fetch error:", err);
+        const response = await axios.get(`${API_BASE_URL}/api/jobs/public?page=1&limit=8`, { timeout: 10000 });
+        let jobs = response.data.jobs && Array.isArray(response.data.jobs) ? response.data.jobs : Array.isArray(response.data) ? response.data : [];
+        setFeaturedJobs(jobs.filter(job => job && job._id && job.title && job.status === "approved"));
+      } catch {
         try {
           const fallback = await axios.get(`${API_BASE_URL}/api/jobs`, { timeout: 5000 });
-          const fallbackJobs = (fallback.data.jobs || fallback.data || []).filter(
-            (job) => job.status === "approved"
-          );
-          setFeaturedJobs(fallbackJobs.slice(0, 8));
-        } catch {
-          setJobsError("Could not load jobs. Please try again later.");
-        }
-      } finally {
-        setJobsLoading(false);
-      }
+          setFeaturedJobs((fallback.data.jobs || fallback.data || []).filter(j => j.status === "approved").slice(0, 8));
+        } catch { setJobsError("Could not load jobs."); }
+      } finally { setJobsLoading(false); }
     };
-
     fetchJobs();
   }, []);
 
-  // ── Auto-advance ad carousel ──
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveAd((prev) => (prev + 1) % featuredAds.length);
-    }, 4000);
+    const timer = setInterval(() => setActiveAd(p => (p + 1) % featuredAds.length), 4000);
     return () => clearInterval(timer);
   }, []);
 
-  const handleSearch = () => {
-    navigate(`/jobs?search=${searchKeyword}&location=${searchLocation}`);
-  };
+  const handleSearch = () => navigate(`/jobs?search=${searchKeyword}&location=${searchLocation}`);
 
-  // ── Helpers ──
   const formatSalaryLabel = (job) => {
     if (!job.isPaid) return "Unpaid / Volunteer";
-    if (job.stipend) {
-      const periods = { monthly: "/mo", yearly: "/yr", weekly: "/wk", hourly: "/hr", project: "/project" };
-      return `${job.stipend} ${periods[job.stipendPeriod] || ""}`.trim();
-    }
+    if (job.stipend) { const p = { monthly: "/mo", yearly: "/yr", weekly: "/wk", hourly: "/hr", project: "/project" }; return `${job.stipend} ${p[job.stipendPeriod] || ""}`.trim(); }
     if (job.salary) return job.salary;
     return "Paid";
   };
 
   const daysSincePosted = (dateStr) => {
     if (!dateStr) return null;
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-    if (diff === 0) return "Today";
-    if (diff === 1) return "Yesterday";
-    return `${diff} days ago`;
+    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+    return diff === 0 ? "Today" : diff === 1 ? "Yesterday" : `${diff} days ago`;
   };
 
-  // Format number: 12500 → "12.5k+"  |  null → "—"
   const formatStatNum = (val) => {
     if (val === null || val === undefined) return "—";
     if (val >= 1000) return `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k+`;
     return `${val}+`;
   };
 
-  // ── Static data ──
   const jobCategories = [
-    { name: "Freshers",         count: 1240, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>) },
-    { name: "IT",               count: 3890, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>) },
-    { name: "Sales & Marketing",count: 2670, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>) },
-    { name: "Operations",       count: 1340, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>) },
-    { name: "Manufacturing",    count:  820, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>) },
-    { name: "Engineering",      count: 1560, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 1 19.07 19.07"/></svg>) },
-    { name: "Finance",          count:  940, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
-    { name: "Solar & Renewable",count: 2100, icon: (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>) },
+    { name: "Freshers", count: 1240, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> },
+    { name: "IT", count: 3890, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> },
+    { name: "Sales & Marketing", count: 2670, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> },
+    { name: "Operations", count: 1340, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
+    { name: "Manufacturing", count: 820, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg> },
+    { name: "Engineering", count: 1560, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 1 19.07 19.07"/></svg> },
+    { name: "Finance", count: 940, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+    { name: "Solar & Renewable", count: 2100, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
   ];
 
   const topCompanies = [
-    { name: "Gronsol",    logo: "/companies/gronsol.jpeg" },
-    { name: "Kalpa Power",logo: "/companies/kalpa-power.jpeg" },
-    { name: "Selec",      logo: "/companies/selec.jpeg" },
-    { name: "Feston",     logo: "/companies/feston.jpeg" },
+    { name: "Gronsol", logo: "/companies/gronsol.jpeg" },
+    { name: "Kalpa Power", logo: "/companies/kalpa-power.jpeg" },
+    { name: "Selec", logo: "/companies/selec.jpeg" },
+    { name: "Feston", logo: "/companies/feston.jpeg" },
     { name: "SuryaLogix", logo: "/companies/suryalogix.jpeg" },
-    { name: "Nova SYS",   logo: "/companies/novasys.jpeg" },
+    { name: "Nova SYS", logo: "/companies/novasys.jpeg" },
   ];
 
   const featuredAds = [
-    { title: "Solar Careers Drive 2026", subtitle: "Top renewable companies are hiring across India — 500+ openings", tag: "Solar Energy",     cta: "Explore Roles",  accent: "#f59e0b", accentLight: "#fef3c7", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=800&q=80" },
-    { title: "Wind Energy Openings",     subtitle: "Explore technician, analyst and operations roles nationwide",    tag: "Wind Power",       cta: "View Openings",  accent: "#06b6d4", accentLight: "#cffafe", image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80" },
-    { title: "EV Jobs Boom 2026",        subtitle: "Apply for EV infrastructure and battery domain positions",       tag: "Electric Vehicles",cta: "Apply Now",      accent: "#8b5cf6", accentLight: "#ede9fe", image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80" },
-    { title: "Green Startups Hiring",    subtitle: "Fast-growing climate tech opportunities with great equity",      tag: "Climate Tech",     cta: "Discover More",  accent: "#10b981", accentLight: "#d1fae5", image: "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=800&q=80" },
+    { title: "Solar Careers Drive 2026", subtitle: "Top renewable companies are hiring across India — 500+ openings", tag: "Solar Energy", cta: "Explore Roles", accent: "#f59e0b", accentLight: "#fef3c7", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=800&q=80" },
+    { title: "Wind Energy Openings", subtitle: "Explore technician, analyst and operations roles nationwide", tag: "Wind Power", cta: "View Openings", accent: "#06b6d4", accentLight: "#cffafe", image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80" },
+    { title: "EV Jobs Boom 2026", subtitle: "Apply for EV infrastructure and battery domain positions", tag: "Electric Vehicles", cta: "Apply Now", accent: "#8b5cf6", accentLight: "#ede9fe", image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80" },
+    { title: "Green Startups Hiring", subtitle: "Fast-growing climate tech opportunities with great equity", tag: "Climate Tech", cta: "Discover More", accent: "#10b981", accentLight: "#d1fae5", image: "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=800&q=80" },
   ];
 
-  const scrollAds = (direction) => {
-    setActiveAd((prev) =>
-      direction === "left"
-        ? (prev - 1 + featuredAds.length) % featuredAds.length
-        : (prev + 1) % featuredAds.length
-    );
-  };
+  const scrollAds = (dir) => setActiveAd(p => dir === "left" ? (p - 1 + featuredAds.length) % featuredAds.length : (p + 1) % featuredAds.length);
 
   return (
     <>
@@ -218,6 +158,15 @@ export default function GreenJobsHomepage() {
         @keyframes statPop { from { opacity: 0; transform: translateY(5px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
 
+        @keyframes phraseSlideOutUp {
+          0%   { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-56px); }
+        }
+        @keyframes phraseSlideInUp {
+          0%   { opacity: 0; transform: translateY(56px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
         .homepage-wrapper { min-height: 100vh; background: #f8fafc; }
 
         /* ══ HERO ══ */
@@ -228,8 +177,87 @@ export default function GreenJobsHomepage() {
         .hero-left { flex: 1; z-index: 2; padding: 72px 0; max-width: 580px; }
         .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: white; border: 1.5px solid #bbf7d0; color: #15803d; font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: 50px; margin-bottom: 24px; letter-spacing: 0.3px; box-shadow: 0 2px 8px rgba(16,185,129,0.12); width: fit-content; }
         .hero-badge-dot { width: 7px; height: 7px; background: #16a34a; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
-        .hero-title { font-size: 58px; line-height: 1.06; font-weight: 800; color: #0f172a; margin-bottom: 20px; letter-spacing: -2px; white-space: nowrap; }
-        .hero-title .highlight { color: #10b981; }
+
+        /* ── Title: single line with inline animated phrase ── */
+        .hero-title {
+          font-size: 52px;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 10px;
+          letter-spacing: -2px;
+          line-height: 1.08;
+          /* Allow wrapping only if truly needed */
+          display: flex;
+          align-items: baseline;
+          gap: 0;
+        }
+
+        /* "Green Industry. " — static part */
+        .hero-title-static {
+          white-space: nowrap;
+          flex-shrink: 0;
+          margin-right: 14px;
+        }
+
+        /* Clip window for the animated phrase — inline-flex so it sits next to static */
+        .hero-title-clip {
+          display: inline-flex;
+          overflow: hidden;
+          /* height exactly matches the line-height of the title font */
+          height: 1.2em;
+          align-items: flex-end;
+          vertical-align: bottom;
+          flex-shrink: 0;
+          /* wide enough for the longest phrase — prevents layout jump */
+          min-width: 50px;
+          position: relative;
+        }
+
+        /* The sliding phrase itself */
+        .hero-phrase {
+          display: inline-block;
+          color: #10b981;
+          white-space: nowrap;
+          will-change: transform, opacity;
+          line-height: 1.08;
+        }
+
+        .hero-phrase.state-visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .hero-phrase.state-exit {
+          animation: phraseSlideOutUp 0.32s cubic-bezier(0.55, 0, 0.45, 1) forwards;
+        }
+        .hero-phrase.state-enter {
+          opacity: 0;
+          transform: translateY(56px);
+          animation: none;
+        }
+        .hero-phrase.state-visible-anim {
+          animation: phraseSlideInUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Dot indicators */
+        .phrase-dots {
+          display: flex;
+          gap: 5px;
+          margin-top: 6px;
+          margin-bottom: 20px;
+        }
+        .phrase-dot {
+          height: 4px;
+          width: 4px;
+          border-radius: 2px;
+          background: #bbf7d0;
+          transition: width 0.35s ease, background 0.35s ease;
+          flex-shrink: 0;
+        }
+        .phrase-dot.active {
+          width: 20px;
+          background: #10b981;
+        }
+
         .hero-subtitle { font-size: 17px; color: #64748b; margin-bottom: 38px; max-width: 460px; line-height: 1.72; font-weight: 400; }
 
         .search-container { width: 100%; max-width: 520px; }
@@ -242,21 +270,18 @@ export default function GreenJobsHomepage() {
         .search-btn { height: 46px; min-width: 108px; padding: 0 20px; border: none; border-radius: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: 'Inter', sans-serif; transition: all 0.18s; box-shadow: 0 4px 14px rgba(16,185,129,0.40); letter-spacing: 0.2px; }
         .search-btn:hover { background: linear-gradient(135deg, #059669 0%, #047857 100%); box-shadow: 0 6px 20px rgba(16,185,129,0.50); transform: translateY(-1px); }
 
-        /* ── Hero Stats ── */
         .hero-stats { display: flex; gap: 0; margin-top: 36px; }
         .hero-stat { display: flex; flex-direction: column; gap: 4px; padding-right: 32px; margin-right: 32px; border-right: 1px solid #d1fae5; }
         .hero-stat:last-child { border-right: none; padding-right: 0; margin-right: 0; }
         .hero-stat-num { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -0.5px; min-width: 56px; }
         .hero-stat-num.loaded { animation: statPop 0.45s cubic-bezier(0.34,1.56,0.64,1); }
-        .hero-stat-num span { color: #10b981; }
-        /* Skeleton shimmer while value is loading */
         .stat-skeleton { display: inline-block; height: 26px; width: 68px; border-radius: 6px; background: linear-gradient(90deg, #d1fae5 0%, #f0fdf4 50%, #d1fae5 100%); background-size: 400px 100%; animation: shimmer 1.4s infinite linear; vertical-align: middle; }
         .hero-stat-label { font-size: 11.5px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .hero-right { flex: 0 0 460px; display: flex; justify-content: center; align-items: flex-end; position: relative; align-self: stretch; }
         .hero-image-wrapper { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; position: relative; }
         .hero-image-bg { display: none; }
-        .hero-person { mix-blend-mode: screen; width: 100%; max-width: 500px; height: auto; object-fit: contain; object-position: bottom center; display: block; position: relative; z-index: 2; filter: brightness(0.88) contrast(1.08) saturate(1.05);transform: translateX(100px); }
+        .hero-person { mix-blend-mode: screen; width: 100%; max-width: 500px; height: auto; object-fit: contain; object-position: bottom center; display: block; position: relative; z-index: 2; filter: brightness(0.88) contrast(1.08) saturate(1.05); transform: translateX(100px); }
 
         /* ══ CATEGORIES ══ */
         .categories-carousel { background: white; padding: 56px 40px; overflow: hidden; border-bottom: 1px solid #f1f5f9; }
@@ -300,7 +325,7 @@ export default function GreenJobsHomepage() {
         .ads-dot { width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; transition: all 0.3s; cursor: pointer; }
         .ads-dot.active { width: 20px; border-radius: 3px; background: #10b981; }
         .ads-arrow { width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; color: #64748b; }
-        .ads-arrow:hover { border-color: #10b981; background: #f0fdf4; color: #10b981; box-shadow: 0 2px 8px rgba(16,185,129,0.15); }
+        .ads-arrow:hover { border-color: #10b981; background: #f0fdf4; color: #10b981; }
         .ads-spotlight { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: stretch; }
         .ad-main-card { border-radius: 20px; overflow: hidden; position: relative; min-height: 380px; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; animation: slideIn 0.4s ease; }
         .ad-main-card:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(0,0,0,0.14); }
@@ -331,7 +356,7 @@ export default function GreenJobsHomepage() {
         .jobs-title { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
         .jobs-subtitle { font-size: 16px; color: #64748b; }
         .jobs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
-        .job-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; transition: all 0.2s; cursor: pointer; animation: fadeUp 0.3s ease; display: flex; flex-direction: column; gap: 0; }
+        .job-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; transition: all 0.2s; cursor: pointer; animation: fadeUp 0.3s ease; display: flex; flex-direction: column; }
         .job-card:hover { border-color: #10b981; box-shadow: 0 4px 20px rgba(16,185,129,0.1); transform: translateY(-2px); }
         .job-tags { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
         .job-tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -374,14 +399,21 @@ export default function GreenJobsHomepage() {
         .footer-bottom { text-align: center; padding-top: 32px; border-top: 1px solid #334155; color: #64748b; font-size: 14px; }
 
         /* ══ RESPONSIVE ══ */
-        @media (max-width: 1200px) { .hero-container { padding: 0 48px; } .hero-title { font-size: 46px; white-space: normal; letter-spacing: -1.5px; } .hero-right { flex: 0 0 400px; } }
+        @media (max-width: 1200px) {
+          .hero-container { padding: 0 48px; }
+          .hero-title { font-size: 40px; letter-spacing: -1.5px; }
+          .hero-title-clip { min-width: 240px; height: 1.1em; }
+          .hero-right { flex: 0 0 400px; }
+        }
         @media (max-width: 960px) {
           .hero-container { flex-direction: column; padding: 0 32px; min-height: auto; }
           .hero-left { padding: 52px 0 32px; width: 100%; max-width: 100%; text-align: center; align-items: center; display: flex; flex-direction: column; }
-          .hero-title { font-size: 38px; white-space: normal; letter-spacing: -1px; }
+          .hero-title { font-size: 34px; letter-spacing: -1px; justify-content: center; }
+          .hero-title-clip { min-width: 200px; }
           .hero-subtitle { max-width: 100%; }
           .search-container { max-width: 100%; }
           .hero-stats { justify-content: center; }
+          .phrase-dots { justify-content: center; }
           .hero-right { flex: 0 0 auto; width: 100%; max-width: 400px; min-height: 300px; align-self: center; }
           .ads-spotlight { grid-template-columns: 1fr; }
           .ad-main-card { min-height: 300px; }
@@ -389,7 +421,8 @@ export default function GreenJobsHomepage() {
         @media (max-width: 600px) {
           .hero-container { padding: 0 20px; }
           .hero-left { padding: 40px 0 24px; }
-          .hero-title { font-size: 30px; letter-spacing: -0.5px; }
+          .hero-title { font-size: 26px; letter-spacing: -0.5px; flex-wrap: wrap; gap: 6px; }
+          .hero-title-clip { min-width: 160px; height: 1.15em; }
           .hero-subtitle { font-size: 15px; }
           .search-box { flex-wrap: wrap; padding: 6px; gap: 4px; }
           .search-input-wrapper { flex: 1 1 45%; }
@@ -413,9 +446,21 @@ export default function GreenJobsHomepage() {
           <div className="hero-container">
             <div className="hero-left">
 
+              {/*
+                TITLE — one flex row:
+                  "Green Industry. " [static]  +  [clip window → animated phrase]
+              */}
               <h1 className="hero-title">
-                Green Industry. <span className="highlight">Real Careers.</span>
+                <span className="hero-title-static">Your Dream Job.</span>
+
+                {/* overflow:hidden clip — sits inline next to the static text */}
+                <span className="hero-title-clip">
+                  <span className={`hero-phrase state-${phraseState === "visible" ? "visible" : phraseState === "exit" ? "exit" : phraseState === "enter" ? "enter" : "visible-anim"}`}>
+                    {HERO_PHRASES[phraseIndex]}
+                  </span>
+                </span>
               </h1>
+
               <p className="hero-subtitle">
                 Discover renewable energy opportunities across India and connect
                 with purpose-driven companies building the future.
@@ -425,61 +470,34 @@ export default function GreenJobsHomepage() {
                 <div className="search-box">
                   <div className="search-input-wrapper">
                     <Search className="search-icon" size={18} />
-                    <input
-                      type="text"
-                      placeholder="Job title, skill or company..."
-                      className="search-input"
-                      value={searchKeyword}
-                      onChange={(e) => setSearchKeyword(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    />
+                    <input type="text" placeholder="Job title, skill or company..." className="search-input" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()} />
                   </div>
-                  <div className="search-divider"></div>
+                  <div className="search-divider" />
                   <div className="search-input-wrapper" style={{ flex: 0.7 }}>
                     <MapPin className="search-icon" size={18} />
-                    <input
-                      type="text"
-                      placeholder="Location..."
-                      className="search-input"
-                      value={searchLocation}
-                      onChange={(e) => setSearchLocation(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    />
+                    <input type="text" placeholder="Location..." className="search-input" value={searchLocation} onChange={e => setSearchLocation(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()} />
                   </div>
                   <button className="search-btn" onClick={handleSearch}>Find Jobs</button>
                 </div>
               </div>
 
-              {/* ── Live stats from backend ── */}
               <div className="hero-stats">
                 {[
-                  { value: heroStats.liveJobs,   label: "Active Jobs" },
-                  { value: heroStats.companies,  label: "Green Companies" },
+                  { value: heroStats.liveJobs, label: "Active Jobs" },
+                  { value: heroStats.companies, label: "Green Companies" },
                 ].map((stat, i) => (
                   <div className="hero-stat" key={i}>
-                    {stat.value === null ? (
-                      <span className="stat-skeleton" />
-                    ) : (
-                      <span className="hero-stat-num loaded">
-                        {formatStatNum(stat.value)}
-                      </span>
-                    )}
+                    {stat.value === null ? <span className="stat-skeleton" /> : <span className="hero-stat-num loaded">{formatStatNum(stat.value)}</span>}
                     <span className="hero-stat-label">{stat.label}</span>
                   </div>
                 ))}
               </div>
-
             </div>
 
             <div className="hero-right">
               <div className="hero-image-wrapper">
-                <div className="hero-image-bg"></div>
-                <img
-                  src="/home-right.png"
-                  alt="Green energy professional"
-                  className="hero-person"
-                  onError={(e) => { e.target.style.display = "none"; }}
-                />
+                <div className="hero-image-bg" />
+                <img src="/home-right.png" alt="Green energy professional" className="hero-person" onError={e => { e.target.style.display = "none"; }} />
               </div>
             </div>
           </div>
@@ -492,12 +510,12 @@ export default function GreenJobsHomepage() {
           <div className="categories-track-wrapper">
             <button className="cat-arrow cat-arrow-left" onClick={() => document.getElementById("categoriesScroll").scrollBy({ left: -240, behavior: "smooth" })}>←</button>
             <div className="categories-scroll" id="categoriesScroll">
-              {jobCategories.map((category, index) => (
-                <div key={index} className="category-card" onClick={() => navigate(`/jobs?category=${category.name}`)}>
-                  <div className="category-icon-box">{category.icon}</div>
+              {jobCategories.map((cat, i) => (
+                <div key={i} className="category-card" onClick={() => navigate(`/jobs?category=${cat.name}`)}>
+                  <div className="category-icon-box">{cat.icon}</div>
                   <div className="category-text">
-                    <div className="category-name">{category.name}</div>
-                    <div className="category-count">{category.count.toLocaleString()} Jobs</div>
+                    <div className="category-name">{cat.name}</div>
+                    <div className="category-count">{cat.count.toLocaleString()} Jobs</div>
                   </div>
                 </div>
               ))}
@@ -505,38 +523,27 @@ export default function GreenJobsHomepage() {
             <button className="cat-arrow cat-arrow-right" onClick={() => document.getElementById("categoriesScroll").scrollBy({ left: 240, behavior: "smooth" })}>→</button>
           </div>
         </section>
-{/* ══ LIVE JOBS ══ */}
+
+        {/* ══ LIVE JOBS ══ */}
         <section className="jobs-section">
           <div className="jobs-header">
             <h2 className="jobs-title">Jobs Listed Right Now</h2>
             <p className="jobs-subtitle">Explore the latest live opportunities in renewable energy</p>
           </div>
-
           {jobsLoading ? (
-            <div className="jobs-state">
-              <div className="state-icon"><Loader2 size={32} color="#10b981" className="spinner" /></div>
-              <p className="state-title">Loading jobs...</p>
-            </div>
+            <div className="jobs-state"><div className="state-icon"><Loader2 size={32} color="#10b981" className="spinner" /></div><p className="state-title">Loading jobs...</p></div>
           ) : jobsError ? (
-            <div className="jobs-state">
-              <div className="state-icon"><AlertCircle size={32} color="#f59e0b" /></div>
-              <p className="state-title">Could not load jobs</p>
-              <p className="state-desc">{jobsError}</p>
-            </div>
+            <div className="jobs-state"><div className="state-icon"><AlertCircle size={32} color="#f59e0b" /></div><p className="state-title">Could not load jobs</p><p className="state-desc">{jobsError}</p></div>
           ) : featuredJobs.length === 0 ? (
-            <div className="jobs-state">
-              <div className="state-icon"><Briefcase size={32} color="#cbd5e1" /></div>
-              <p className="state-title">No approved jobs yet</p>
-              <p className="state-desc">Check back soon — new roles are posted regularly.</p>
-            </div>
+            <div className="jobs-state"><div className="state-icon"><Briefcase size={32} color="#cbd5e1" /></div><p className="state-title">No approved jobs yet</p><p className="state-desc">Check back soon.</p></div>
           ) : (
             <>
               <div className="jobs-grid">
-                {featuredJobs.map((job) => {
-                  const salaryLabel  = formatSalaryLabel(job);
-                  const posted       = daysSincePosted(job.createdAt);
-                  const companyName  = job.company || job.business?.businessProfile?.businessName || job.business?.businessProfile?.companyName || "Direct Hire";
-                  const skills       = (job.skills || []).slice(0, 4);
+                {featuredJobs.map(job => {
+                  const salaryLabel = formatSalaryLabel(job);
+                  const posted = daysSincePosted(job.createdAt);
+                  const companyName = job.company || job.business?.businessProfile?.businessName || job.business?.businessProfile?.companyName || "Direct Hire";
+                  const skills = (job.skills || []).slice(0, 4);
                   return (
                     <div key={job._id} className="job-card" onClick={() => navigate(`/jobs/${job._id}`)}>
                       <div className="job-tags">
@@ -550,18 +557,18 @@ export default function GreenJobsHomepage() {
                         <span className="company-name">{companyName}</span>
                       </div>
                       <div className="job-meta">
-                        {job.location  && <div className="job-meta-item"><MapPinIcon size={14} />{job.location}</div>}
+                        {job.location && <div className="job-meta-item"><MapPinIcon size={14} />{job.location}</div>}
                         {job.experience && <div className="job-meta-item"><Briefcase size={14} />{job.experience}</div>}
                       </div>
                       {skills.length > 0 && (
                         <div className="job-skills">
-                          {skills.map((s) => <span key={s} className="job-skill-pill">{s}</span>)}
+                          {skills.map(s => <span key={s} className="job-skill-pill">{s}</span>)}
                           {(job.skills || []).length > 4 && <span className="job-skill-pill" style={{ color: "#94a3b8", background: "transparent", border: "none" }}>+{job.skills.length - 4} more</span>}
                         </div>
                       )}
                       <div className={job.isPaid ? "job-salary" : "job-salary-unpaid"}>{salaryLabel}</div>
                       {posted && <div className="job-posted"><Clock size={12} />{posted}</div>}
-                      <button className="job-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${job._id}`); }}>View Details</button>
+                      <button className="job-view-btn" onClick={e => { e.stopPropagation(); navigate(`/jobs/${job._id}`); }}>View Details</button>
                     </div>
                   );
                 })}
@@ -570,120 +577,102 @@ export default function GreenJobsHomepage() {
             </>
           )}
         </section>
-       
 
         {/* ══ ADS ══ */}
         <section className="ads-section">
           <div className="ads-inner">
             <div className="ads-header">
               <div className="ads-header-left">
-                <div className="ads-eyebrow">
-                  <span className="ads-eyebrow-line"></span>
-                  Featured Opportunities
-                </div>
+                <div className="ads-eyebrow"><span className="ads-eyebrow-line" />Featured Opportunities</div>
                 <h2 className="ads-title">Spotlight on Green Energy Careers</h2>
               </div>
               <div className="ads-nav">
                 <div className="ads-dots">
-                  {featuredAds.map((_, i) => (
-                    <div key={i} className={`ads-dot${i === activeAd ? " active" : ""}`} onClick={() => setActiveAd(i)} />
-                  ))}
+                  {featuredAds.map((_, i) => <div key={i} className={`ads-dot${i === activeAd ? " active" : ""}`} onClick={() => setActiveAd(i)} />)}
                 </div>
                 <button className="ads-arrow" onClick={() => scrollAds("left")}><ChevronLeft size={18} /></button>
                 <button className="ads-arrow" onClick={() => scrollAds("right")}><ChevronRight size={18} /></button>
               </div>
             </div>
-
             <div className="ads-spotlight">
               <div className="ad-main-card" onClick={() => navigate("/jobs")} key={activeAd}>
-                <img src={featuredAds[activeAd].image} alt={featuredAds[activeAd].title} className="ad-main-img" onError={(e) => { e.target.style.background = "#1e293b"; }} />
+                <img src={featuredAds[activeAd].image} alt={featuredAds[activeAd].title} className="ad-main-img" onError={e => { e.target.style.background = "#1e293b"; }} />
                 <div className="ad-main-overlay" />
                 <div className="ad-main-content">
-                  <div className="ad-main-tag" style={{ background: featuredAds[activeAd].accentLight + "33", color: featuredAds[activeAd].accentLight, border: `1px solid ${featuredAds[activeAd].accentLight}55` }}>
-                    {featuredAds[activeAd].tag}
-                  </div>
+                  <div className="ad-main-tag" style={{ background: featuredAds[activeAd].accentLight + "33", color: featuredAds[activeAd].accentLight, border: `1px solid ${featuredAds[activeAd].accentLight}55` }}>{featuredAds[activeAd].tag}</div>
                   <div className="ad-main-title">{featuredAds[activeAd].title}</div>
                   <div className="ad-main-subtitle">{featuredAds[activeAd].subtitle}</div>
-                  <button className="ad-main-cta" style={{ background: featuredAds[activeAd].accent }}>
-                    {featuredAds[activeAd].cta} <ChevronRight size={16} />
-                  </button>
+                  <button className="ad-main-cta" style={{ background: featuredAds[activeAd].accent }}>{featuredAds[activeAd].cta} <ChevronRight size={16} /></button>
                 </div>
               </div>
-
               <div className="ads-side-stack">
-                {featuredAds.map((ad, i) =>
-                  i !== activeAd && (
-                    <div
-                      key={i}
-                      className={`ad-side-card${i === (activeAd + 1) % featuredAds.length ? " highlighted" : ""}`}
-                      onClick={() => { setActiveAd(i); navigate("/jobs"); }}
-                    >
-                      <img src={ad.image} alt={ad.title} className="ad-side-thumb" onError={(e) => { e.target.style.background = "#f1f5f9"; }} />
-                      <div className="ad-side-body">
-                        <div className="ad-side-tag" style={{ color: ad.accent }}>{ad.tag}</div>
-                        <div className="ad-side-title">{ad.title}</div>
-                        <div className="ad-side-subtitle">{ad.subtitle}</div>
-                      </div>
-                      <div className="ad-side-arrow"><ChevronRight size={18} /></div>
+                {featuredAds.map((ad, i) => i !== activeAd && (
+                  <div key={i} className={`ad-side-card${i === (activeAd + 1) % featuredAds.length ? " highlighted" : ""}`} onClick={() => { setActiveAd(i); navigate("/jobs"); }}>
+                    <img src={ad.image} alt={ad.title} className="ad-side-thumb" onError={e => { e.target.style.background = "#f1f5f9"; }} />
+                    <div className="ad-side-body">
+                      <div className="ad-side-tag" style={{ color: ad.accent }}>{ad.tag}</div>
+                      <div className="ad-side-title">{ad.title}</div>
+                      <div className="ad-side-subtitle">{ad.subtitle}</div>
                     </div>
-                  )
-                )}
+                    <div className="ad-side-arrow"><ChevronRight size={18} /></div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </section>
-         {/* ══ COMPANIES ══ */}
+
+        {/* ══ COMPANIES ══ */}
         <section className="companies-section">
           <h2 className="companies-title">Top Companies Hiring Now</h2>
           <div className="companies-grid">
-            {topCompanies.map((company, index) => (
-              <div key={index} className="company-card" onClick={() => navigate(`/jobs?company=${company.name}`)}>
-                <img
-                  src={company.logo}
-                  alt={company.name}
-                  className="company-logo"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                    e.target.parentElement.innerHTML = `<div style="font-size:18px;font-weight:600;color:#374151">${company.name}</div>`;
-                  }}
-                />
+            {topCompanies.map((company, i) => (
+              <div key={i} className="company-card" onClick={() => navigate(`/jobs?company=${company.name}`)}>
+                <img src={company.logo} alt={company.name} className="company-logo"
+                  onError={e => { e.target.style.display = "none"; e.target.parentElement.innerHTML = `<div style="font-size:18px;font-weight:600;color:#374151">${company.name}</div>`; }} />
               </div>
             ))}
           </div>
         </section>
-        
 
       </div>
 
       {/* ══ FOOTER ══ */}
       <footer className="footer">
         <div className="footer-grid">
-          <div>
-            <div className="footer-brand">GreenJobs</div>
-            <p className="footer-desc">Your gateway to renewable energy careers. Connecting talent with purpose-driven opportunities.</p>
-          </div>
-          <div>
-            <div className="footer-title">Quick Links</div>
-            <div className="footer-links">
-              <span className="footer-link" onClick={() => navigate("/")}>Home</span>
-              <span className="footer-link">About Us</span>
-            </div>
-          </div>
-          <div>
-            <div className="footer-title">For Recruiters</div>
-            <div className="footer-links">
-              <span className="footer-link" onClick={() => navigate("/login")}>Sign In</span>
-              <span className="footer-link" onClick={() => navigate("/signup")}>Sign Up</span>
-            </div>
-          </div>
-          <div>
-            <div className="footer-title">Contact</div>
-            <div className="footer-links">
-              <span className="footer-link">Address: Delhi</span>
-              <span className="footer-link">Phone No.</span>
-            </div>
-          </div>
-        </div>
+  <div>
+    <div className="footer-brand">GreenJobs</div>
+    <p className="footer-desc">Your gateway to renewable energy careers. Connecting talent with purpose-driven opportunities.</p>
+  </div>
+  <div>
+    <div className="footer-title">Quick Links</div>
+    <div className="footer-links">
+      <span className="footer-link" onClick={() => navigate("/")}>Home</span>
+      <span className="footer-link">About Us</span>
+    </div>
+  </div>
+  <div>
+    <div className="footer-title">For Recruiters</div>
+    <div className="footer-links">
+      <span className="footer-link" onClick={() => navigate("/recruiter/login")}>Sign In</span>
+      <span className="footer-link" onClick={() => navigate("/recruiter/signup")}>Sign Up</span>
+    </div>
+  </div>
+  <div>
+    <div className="footer-title">Contact</div>
+    <div className="footer-links">
+      <span className="footer-link">Address: Delhi</span>
+      <span className="footer-link">Phone No.</span>
+    </div>
+  </div>
+  <div>
+    <div className="footer-title">Admin</div>
+    <div className="footer-links">
+      <span className="footer-link" onClick={() => navigate("/admin/login")} >Sign In</span>
+      <span className="footer-link" onClick={() => navigate("/admin/signup")} >Sign Up</span>
+    </div>
+  </div>
+</div>
         <div className="footer-bottom">© 2026 GreenJobs. All rights reserved.</div>
       </footer>
     </>

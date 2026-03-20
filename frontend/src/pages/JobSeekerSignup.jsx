@@ -199,16 +199,6 @@ const JobSeekerSignup = () => {
 
         <div className="jss-right">
           <div className="jss-form-box">
-            <div className="jss-logo">
-              <div className="jss-logo-icon"><Leaf size={20} color="#6ee7b7" /></div>
-              <div className="jss-logo-text"><span>Green</span>Jobs</div>
-            </div>
-            <div className="jss-role-switch">
-              <span className="jss-chip active">Job Seeker</span>
-              <Link to="/recruiter/signup" className="jss-chip">Recruiter</Link>
-              <Link to="/business/signup" className="jss-chip">Business</Link>
-              <Link to="/admin/signup" className="jss-chip">Admin</Link>
-            </div>
             {step === "signup" ? (
               <>
                 <h1 className="jss-heading">Create account</h1>

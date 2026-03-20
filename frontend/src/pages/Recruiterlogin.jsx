@@ -73,13 +73,13 @@ const RecruiterLogin = () => {
           min-height: calc(100vh - 82px);
           display: flex;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          background: #eff6ff;
+          background: #f0fdf4;
         }
 
         .rec-left {
           flex: 1; min-width: 0;
           display: flex; align-items: center; justify-content: center;
-          padding: 48px 40px; overflow-y: auto; background: #eff6ff;
+          padding: 48px 40px; overflow-y: auto; background: #f0fdf4;
         }
 
         .rec-form-box {
@@ -89,38 +89,29 @@ const RecruiterLogin = () => {
         @keyframes recUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
         .rec-wordmark {
-          font-size: 20px; font-weight: 800; color: #1e3a5f;
+          font-size: 20px; font-weight: 800; color: #052e16;
           margin-bottom: 32px; display: flex; align-items: center; gap: 10px;
           letter-spacing: -0.4px;
         }
-        .rec-wordmark-dot { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; margin-top: 2px; flex-shrink: 0; }
+        .rec-wordmark-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; margin-top: 2px; flex-shrink: 0; }
 
-        .rec-role-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 28px; }
-        .rec-chip {
-          padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 700;
-          border: 1px solid #e5e7eb; background: white; color: #9ca3af;
-          text-decoration: none; transition: all 0.15s; letter-spacing: 0.05em; text-transform: uppercase;
-        }
-        .rec-chip:hover { border-color: #3b82f6; color: #2563eb; }
-        .rec-chip.active { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; }
+        .rec-heading { font-size: 28px; font-weight: 800; color: #052e16; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .rec-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.6; font-weight: 400; }
+        .rec-sub strong { color: #052e16; font-weight: 700; }
 
-        .rec-heading { font-size: 28px; font-weight: 800; color: #1e3a5f; margin-bottom: 6px; letter-spacing: -0.5px; }
-        .rec-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; line-height: 1.6; font-weight: 400; }
-        .rec-sub strong { color: #1d4ed8; font-weight: 700; }
-
-        .rec-label { font-size: 12px; font-weight: 700; color: #475569; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .rec-label { font-size: 12px; font-weight: 700; color: #374151; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; display: block; }
 
         .rec-input-wrap { position: relative; margin-bottom: 18px; }
-        .rec-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .rec-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
         .rec-input {
           width: 100%; padding: 13px 16px 13px 44px;
-          background: white; border: 1.5px solid #dbeafe; border-radius: 10px;
+          background: white; border: 1.5px solid #d1fae5; border-radius: 10px;
           font-size: 14px; font-family: 'Inter', sans-serif;
-          color: #1e3a5f; outline: none; transition: all 0.2s; box-sizing: border-box;
+          color: #052e16; outline: none; transition: all 0.2s; box-sizing: border-box;
         }
-        .rec-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        .rec-input:disabled { opacity: 0.6; background: #f0f9ff; }
-        .rec-input::placeholder { color: #94a3b8; }
+        .rec-input:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
+        .rec-input:disabled { opacity: 0.6; background: #f0fdf4; }
+        .rec-input::placeholder { color: #9ca3af; }
 
         .rec-otp-row {
           display: grid; grid-template-columns: repeat(6, 1fr);
@@ -128,63 +119,70 @@ const RecruiterLogin = () => {
         }
         .rec-otp-box {
           width: 100%; aspect-ratio: 1/1; max-height: 60px;
-          background: white; border: 1.5px solid #dbeafe; border-radius: 10px;
+          background: white; border: 1.5px solid #d1fae5; border-radius: 10px;
           font-size: 22px; font-weight: 800; font-family: 'Inter', sans-serif;
-          color: #1e3a5f; text-align: center; outline: none;
+          color: #052e16; text-align: center; outline: none;
           transition: all 0.18s; padding: 0; box-sizing: border-box;
         }
-        .rec-otp-box:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); background: #eff6ff; }
-        .rec-otp-box:not(:placeholder-shown) { background: #eff6ff; }
+        .rec-otp-box:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); background: #f0fdf4; }
+        .rec-otp-box:not(:placeholder-shown) { background: #f0fdf4; }
 
-        .rec-otp-hint { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 20px; }
-        .rec-otp-hint button { background: none; border: none; color: #3b82f6; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; padding: 0; }
+        .rec-otp-hint { font-size: 12px; color: #9ca3af; text-align: center; margin-bottom: 20px; }
+        .rec-otp-hint button { background: none; border: none; color: #16a34a; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; padding: 0; }
         .rec-otp-hint button:hover { text-decoration: underline; }
 
         .rec-captcha { display: flex; justify-content: center; margin-bottom: 18px; }
 
         .rec-btn {
           width: 100%; padding: 14px;
-          background: #1d4ed8; color: white; border: none; border-radius: 10px;
+          background: #052e16; color: white; border: none; border-radius: 10px;
           font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
           cursor: pointer; transition: all 0.2s;
           display: flex; align-items: center; justify-content: center; gap: 8px;
-          box-sizing: border-box; box-shadow: 0 3px 12px rgba(29,78,216,0.3);
-          letter-spacing: 0.1px;
+          box-sizing: border-box; letter-spacing: 0.1px;
         }
-        .rec-btn:hover:not(:disabled) { background: #1e40af; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(29,78,216,0.35); }
+        .rec-btn:hover:not(:disabled) { background: #14532d; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(5,46,22,0.25); }
         .rec-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
         .rec-divider { text-align: center; position: relative; margin: 20px 0; }
-        .rec-divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #dbeafe; }
-        .rec-divider span { background: #eff6ff; padding: 0 14px; font-size: 11px; color: #94a3b8; position: relative; letter-spacing: 0.06em; text-transform: uppercase; }
+        .rec-divider::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #d1fae5; }
+        .rec-divider span { background: #f0fdf4; padding: 0 14px; font-size: 11px; color: #9ca3af; position: relative; letter-spacing: 0.06em; text-transform: uppercase; }
 
-        .rec-footer { text-align: center; margin-top: 28px; font-size: 13px; color: #64748b; }
-        .rec-footer a { color: #3b82f6; font-weight: 700; text-decoration: none; }
+        .rec-footer { text-align: center; margin-top: 28px; font-size: 13px; color: #6b7280; }
+        .rec-footer a { color: #16a34a; font-weight: 700; text-decoration: none; }
         .rec-footer a:hover { text-decoration: underline; }
 
-        .rec-back { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; margin-bottom: 24px; padding: 0; font-family: 'Inter', sans-serif; transition: color 0.15s; font-weight: 500; }
-        .rec-back:hover { color: #1e3a5f; }
+        .rec-back { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6b7280; margin-bottom: 24px; padding: 0; font-family: 'Inter', sans-serif; transition: color 0.15s; font-weight: 500; }
+        .rec-back:hover { color: #052e16; }
 
         /* ── RIGHT brand panel ── */
         .rec-right {
           width: 42%; flex-shrink: 0;
-          background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
-          display: flex; flex-direction: column; justify-content: center;
+          background: linear-gradient(160deg, #052e16 0%, #14532d 50%, #166534 100%);
+          display: flex; flex-direction: column; justify-content: flex-end;
           padding: 64px 56px; position: relative; overflow: hidden;
         }
-        .rec-right-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(59,130,246,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.07) 1px, transparent 1px); background-size: 40px 40px; }
-        .rec-right-glow { position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%); top: -80px; right: -80px; pointer-events: none; }
+        .rec-right-circles { position: absolute; inset: 0; pointer-events: none; }
+        .rec-right-circle { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); }
+        .rec-right-c1 { width: 500px; height: 500px; top: -180px; left: -180px; }
+        .rec-right-c2 { width: 340px; height: 340px; top: 60px; right: -120px; }
+        .rec-right-c3 { width: 200px; height: 200px; bottom: 120px; left: 40px; border-color: rgba(16,185,129,0.2); }
+        .rec-right-glow { position: absolute; inset: 0; background-image: radial-gradient(circle at 70% 20%, rgba(16,185,129,0.15) 0%, transparent 60%); pointer-events: none; }
         .rec-right-content { position: relative; z-index: 2; }
-        .rec-right-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #60a5fa; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .rec-right-eyebrow::after { content: ''; flex: 1; height: 1px; background: rgba(96,165,250,0.3); max-width: 60px; }
+        .rec-right-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #6ee7b7; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .rec-right-eyebrow::before { content: ''; width: 24px; height: 1px; background: #6ee7b7; }
         .rec-right-title { font-size: 38px; font-weight: 800; line-height: 1.15; color: white; margin-bottom: 24px; letter-spacing: -1px; }
-        .rec-right-title span { color: #60a5fa; }
-        .rec-right-desc { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.8; margin-bottom: 40px; max-width: 320px; }
+        .rec-right-title span { color: #6ee7b7; }
+        .rec-right-desc { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.8; margin-bottom: 40px; max-width: 320px; }
         .rec-features { display: flex; flex-direction: column; gap: 18px; }
         .rec-feature { display: flex; align-items: flex-start; gap: 14px; }
-        .rec-feature-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .rec-feature-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .rec-feature-title { font-size: 13px; font-weight: 700; color: white; margin-bottom: 3px; }
-        .rec-feature-desc { font-size: 12px; color: rgba(255,255,255,0.4); }
+        .rec-feature-desc { font-size: 12px; color: rgba(255,255,255,0.45); }
+
+        .rec-stats { display: flex; gap: 32px; margin-top: 40px; }
+        .rec-stat-num { font-size: 28px; font-weight: 800; color: white; letter-spacing: -0.5px; }
+        .rec-stat-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 500; }
 
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -199,15 +197,9 @@ const RecruiterLogin = () => {
         <div className="rec-left">
           <div className="rec-form-box">
             <div className="rec-wordmark">
-              <BarChart2 size={20} color="#3b82f6" />
+              <BarChart2 size={20} color="#16a34a" />
               GreenJobs Recruiter
               <div className="rec-wordmark-dot" />
-            </div>
-            <div className="rec-role-row">
-              <Link to="/login" className="rec-chip">Job Seeker</Link>
-              <span className="rec-chip active">Recruiter</span>
-              <Link to="/business/login" className="rec-chip">Business</Link>
-              <Link to="/admin/login" className="rec-chip">Admin</Link>
             </div>
             {step === "email" ? (
               <>
@@ -257,21 +249,31 @@ const RecruiterLogin = () => {
             <div className="rec-footer">
               New recruiter? <Link to="/signup?role=recruiter">Create account</Link>
               {" · "}
-              <Link to="/" style={{ color: "#94a3b8" }}>Home</Link>
+              <Link to="/" style={{ color: "#9ca3af" }}>Home</Link>
             </div>
           </div>
         </div>
 
         <div className="rec-right">
-          <div className="rec-right-grid" /><div className="rec-right-glow" />
+          <div className="rec-right-circles">
+            <div className="rec-right-circle rec-right-c1" />
+            <div className="rec-right-circle rec-right-c2" />
+            <div className="rec-right-circle rec-right-c3" />
+          </div>
+          <div className="rec-right-glow" />
           <div className="rec-right-content">
             <div className="rec-right-eyebrow">For Recruiters</div>
             <h2 className="rec-right-title">Hire <span>smarter</span> in green energy</h2>
             <p className="rec-right-desc">Post jobs, review applications, and build your renewable energy team with India's leading green hiring platform.</p>
             <div className="rec-features">
-              <div className="rec-feature"><div className="rec-feature-icon"><Users size={16} color="#60a5fa" /></div><div><div className="rec-feature-title">Verified Talent Pool</div><div className="rec-feature-desc">Access pre-screened green energy professionals</div></div></div>
-              <div className="rec-feature"><div className="rec-feature-icon"><Zap size={16} color="#60a5fa" /></div><div><div className="rec-feature-title">Fast Hiring</div><div className="rec-feature-desc">Post a job and get applications within 24 hours</div></div></div>
-              <div className="rec-feature"><div className="rec-feature-icon"><Target size={16} color="#60a5fa" /></div><div><div className="rec-feature-title">Targeted Reach</div><div className="rec-feature-desc">Connect with candidates matched to your roles</div></div></div>
+              <div className="rec-feature"><div className="rec-feature-icon"><Users size={16} color="#6ee7b7" /></div><div><div className="rec-feature-title">Verified Talent Pool</div><div className="rec-feature-desc">Access pre-screened green energy professionals</div></div></div>
+              <div className="rec-feature"><div className="rec-feature-icon"><Zap size={16} color="#6ee7b7" /></div><div><div className="rec-feature-title">Fast Hiring</div><div className="rec-feature-desc">Post a job and get applications within 24 hours</div></div></div>
+              <div className="rec-feature"><div className="rec-feature-icon"><Target size={16} color="#6ee7b7" /></div><div><div className="rec-feature-title">Targeted Reach</div><div className="rec-feature-desc">Connect with candidates matched to your roles</div></div></div>
+            </div>
+            <div className="rec-stats">
+              <div><div className="rec-stat-num">2,400+</div><div className="rec-stat-label">Active Jobs</div></div>
+              <div><div className="rec-stat-num">340+</div><div className="rec-stat-label">Companies</div></div>
+              <div><div className="rec-stat-num">18k+</div><div className="rec-stat-label">Placements</div></div>
             </div>
           </div>
         </div>

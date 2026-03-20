@@ -6,7 +6,6 @@ const roles = [
   { key: "job-seeker", label: "Job Seeker",    desc: "Find green energy jobs",       color: "#10b981" },
   { key: "recruiter",  label: "Recruiter",      desc: "Post & manage job listings",   color: "#3b82f6" },
   { key: "business",   label: "Business Owner", desc: "Grow your green business",     color: "#8b5cf6" },
-  { key: "admin",      label: "Admin",          desc: "Platform administration",      color: "#f59e0b" },
 ];
 
 const ROLE_LABELS = {
@@ -148,8 +147,8 @@ const Navbar = ({ title }) => {
 
   const handleLogout = () => { setUserMenuOpen(false); logout(); navigate("/"); };
 
-  const LOGIN_ROUTES  = { "job-seeker": "/login",  recruiter: "/recruiter/login",  business: "/business/login",  admin: "/admin/login"  };
-  const SIGNUP_ROUTES = { "job-seeker": "/signup", recruiter: "/recruiter/signup", business: "/business/signup", admin: "/admin/signup" };
+  const LOGIN_ROUTES  = { "job-seeker": "/login",  recruiter: "/recruiter/login",  business: "/business/login"  };
+  const SIGNUP_ROUTES = { "job-seeker": "/signup", recruiter: "/recruiter/signup", business: "/business/signup" };
 
   const handleRoleLogin  = (role) => { setLoginDropdown(false);  navigate(LOGIN_ROUTES[role]  || "/login");  };
   const handleRoleSignup = (role) => { setSignupDropdown(false); navigate(SIGNUP_ROUTES[role] || "/signup"); };

@@ -223,7 +223,7 @@ const JobSeekerLogin = () => {
           </div>
           <div className="js-leaf-bg" />
           <div className="js-tagline">
-            <div className="js-tagline-eyebrow">Green Energy Careers</div>
+            <div className="js-tagline-eyebrow">Green Jobs Careers</div>
             <h2 className="js-tagline-title">Find your <em>purpose</em> in green energy</h2>
             <p className="js-tagline-sub">Discover renewable energy jobs across India and connect with companies building a sustainable future.</p>
             <div className="js-stats">
@@ -236,16 +236,6 @@ const JobSeekerLogin = () => {
 
         <div className="js-right">
           <div className="js-form-box">
-            <div className="js-form-logo">
-              <div className="js-form-logo-icon"><Leaf size={20} color="#6ee7b7" /></div>
-              <div className="js-form-logo-text"><span>Green</span>Jobs</div>
-            </div>
-            <div className="js-role-switch">
-              <span className="js-role-chip active">Job Seeker</span>
-              <Link to="/recruiter/login" className="js-role-chip">Recruiter</Link>
-              <Link to="/business/login" className="js-role-chip">Business</Link>
-              <Link to="/admin/login" className="js-role-chip">Admin</Link>
-            </div>
             {step === "email" ? (
               <>
                 <h1 className="js-heading">Welcome back</h1>
